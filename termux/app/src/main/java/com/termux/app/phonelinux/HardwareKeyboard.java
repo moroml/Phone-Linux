@@ -24,6 +24,8 @@ public final class HardwareKeyboard implements HardwareKeyHook {
     private final RomajiComposer mComposer = new RomajiComposer();
     /** Keys whose down event was consumed; their repeats are consumed too and the up must not leak. */
     private final Set<Integer> mConsumed = new HashSet<>();
+    /** Keys passed to the terminal directly (bypassing the IME); their up goes the same way. */
+    private final Set<Integer> mDirect = new HashSet<>();
     private KeysConfig mConfig = KeysConfig.defaults();
     private boolean mJapanese;
 
@@ -64,14 +66,25 @@ public final class HardwareKeyboard implements HardwareKeyHook {
             }
             return true;
         }
-        if (!down) return mConsumed.remove(keyCode);
+        if (!down) {
+            if (mDirect.remove(keyCode)) {
+                view.onKeyUp(keyCode, e);
+                return true;
+            }
+            return mConsumed.remove(keyCode);
+        }
 
         // Keep a text selection alive while a modifier is pressed for a copy shortcut.
         if (KeyEvent.isModifierKey(keyCode)) return view.isSelectingText();
 
-        boolean consumed = handleDown(view, e, keyCode);
-        if (consumed) mConsumed.add(keyCode);
-        return consumed;
+        if (handleDown(view, e, keyCode)) {
+            mConsumed.add(keyCode);
+            return true;
+        }
+        // Send the rest straight to the terminal so an IME (e.g. Simeji) cannot turn them into kana.
+        if (e.isSystem() || !view.onKeyDown(keyCode, e)) return false;
+        mDirect.add(keyCode);
+        return true;
     }
 
     private boolean handleDown(TerminalView view, KeyEvent e, int keyCode) {
