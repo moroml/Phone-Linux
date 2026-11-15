@@ -45,8 +45,6 @@ public class PhoneLinuxKeyboardSettingsActivity extends AppCompatActivity {
         int pad = (int) (16 * getResources().getDisplayMetrics().density);
         root.setPadding(pad, pad, pad, pad);
 
-        root.addView(heading(getString(R.string.phone_linux_kb_title), 22));
-
         root.addView(heading(getString(R.string.phone_linux_kb_layout), 16));
         RadioGroup group = new RadioGroup(this);
         mJis = new RadioButton(this);
