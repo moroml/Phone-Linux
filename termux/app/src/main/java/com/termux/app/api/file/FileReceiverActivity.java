@@ -22,6 +22,7 @@ import com.termux.shared.termux.TermuxConstants;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP;
 import com.termux.shared.termux.TermuxConstants.TERMUX_APP.TERMUX_SERVICE;
 import com.termux.app.TermuxService;
+import com.termux.app.phonelinux.ImageInbox;
 import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.settings.properties.TermuxAppSharedProperties;
 import com.termux.shared.termux.settings.properties.TermuxPropertyConstants;
@@ -34,6 +35,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.regex.Pattern;
 
 public class FileReceiverActivity extends AppCompatActivity {
@@ -74,7 +77,10 @@ public class FileReceiverActivity extends AppCompatActivity {
 
         final String sharedTitle = IntentUtils.getStringExtraIfSet(intent, Intent.EXTRA_TITLE, null);
 
-        if (Intent.ACTION_SEND.equals(action) && type != null) {
+        if (type != null && type.startsWith("image/")
+            && (Intent.ACTION_SEND.equals(action) || Intent.ACTION_SEND_MULTIPLE.equals(action))) {
+            handleSharedImages(intent);
+        } else if (Intent.ACTION_SEND.equals(action) && type != null) {
             final String sharedText = intent.getStringExtra(Intent.EXTRA_TEXT);
             final Uri sharedUri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
 
@@ -123,6 +129,23 @@ public class FileReceiverActivity extends AppCompatActivity {
                 showErrorDialogAndQuit("Unable to receive any file or URL.");
             }
         }
+    }
+
+    /** Image shares go to ~/inbox and their paths are typed into the current session. */
+    private void handleSharedImages(Intent intent) {
+        List<Uri> uris = new ArrayList<>();
+        if (Intent.ACTION_SEND_MULTIPLE.equals(intent.getAction())) {
+            ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (list != null) uris.addAll(list);
+        } else {
+            Uri uri = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (uri != null) uris.add(uri);
+        }
+        if (uris.isEmpty()) {
+            showErrorDialogAndQuit("Send action without content - nothing to save.");
+            return;
+        }
+        ImageInbox.importAndInsertAsync(this, null, uris, this::finish);
     }
 
     void showErrorDialogAndQuit(String message) {
