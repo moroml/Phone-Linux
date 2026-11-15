@@ -1,12 +1,14 @@
 #!/data/data/com.termux/files/usr/bin/python3
 # phone-linux: MCP server (stdio) that lets Claude Code operate this phone through the local phone-control API.
-# Key: $HOME/.phone-linux/phone-api-key (or PHONE_API_KEY). Port: PHONE_API_PORT, $HOME/.phone-linux/phone-api-port, else 18765.
+# Key: $HOME/.phone-linux/phone-api-key (or PHONE_API_KEY). Transport: Unix socket $PREFIX/var/run/phone-linux/phone-api.sock
+# (PHONE_API_SOCKET overrides; PHONE_API_TEST_URL=http://host:port switches to TCP for tests only).
 import base64
+import http.client
 import json
 import os
+import socket
 import sys
-import urllib.error
-import urllib.request
+import urllib.parse
 
 DEFAULT_VERSION = "2025-06-18"
 TIMEOUT = 45  # the phone may wait up to 30 s for the user to confirm
@@ -40,9 +42,34 @@ def read_file(path):
 		return ""
 
 
-def base_url():
-	port = os.environ.get("PHONE_API_PORT") or read_file(home_file("phone-api-port")) or "18765"
-	return os.environ.get("PHONE_API_URL") or "http://127.0.0.1:" + port
+def socket_path():
+	return os.environ.get("PHONE_API_SOCKET") or os.path.join(
+		os.environ.get("PREFIX", "/data/data/com.termux/files/usr"), "var", "run", "phone-linux", "phone-api.sock")
+
+
+class UnixHTTPConnection(http.client.HTTPConnection):
+	def __init__(self, path, timeout):
+		super().__init__("localhost", timeout=timeout)
+		self.socket_path = path
+
+	def connect(self):
+		s = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+		s.settimeout(self.timeout)
+		try:
+			s.connect(self.socket_path)
+		except BaseException:
+			s.close()
+			raise
+		self.sock = s
+
+
+def connect():
+	"""HTTP connection to the phone API: the private Unix socket, or TCP when PHONE_API_TEST_URL is set (tests)."""
+	test_url = os.environ.get("PHONE_API_TEST_URL")
+	if test_url:
+		u = urllib.parse.urlparse(test_url)
+		return http.client.HTTPConnection(u.hostname, u.port, timeout=TIMEOUT)
+	return UnixHTTPConnection(socket_path(), TIMEOUT)
 
 
 class ToolError(Exception):
@@ -54,21 +81,24 @@ def api(method, path, args):
 	if not key:
 		raise ToolError("APIの鍵がありません。Phone-Linux の「スマホ操作」設定で『Claude Code 用の鍵を作成』を押してください。")
 	data = json.dumps(args).encode() if method == "POST" else None
-	req = urllib.request.Request(base_url() + path, data=data, method=method, headers={
-		"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+	conn = connect()
 	try:
-		with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-			return resp.read(), resp.headers.get("Content-Type", "")
-	except urllib.error.HTTPError as e:
+		conn.request(method, path, body=data, headers={"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+		resp = conn.getresponse()
+		body, ctype, status = resp.read(), resp.getheader("Content-Type", ""), resp.status
+	except (OSError, http.client.HTTPException):
+		raise ToolError("画面操作サービスに接続できません。設定 > ユーザー補助 で『Phone-Linux 画面操作』をオンにしてください (%s)。" % socket_path()) from None
+	finally:
+		conn.close()
+	if status >= 400:
 		try:
-			detail = json.loads(e.read().decode()).get("error", "")
+			detail = json.loads(body.decode()).get("error", "")
 		except (ValueError, AttributeError):
 			detail = ""
 		hints = {401: "鍵が無効か期限切れです。設定で鍵を作り直してください。", 403: "この鍵では許可されていないか、スマホ側で拒否されました。",
 			409: "入力欄にフォーカスがありません。先に入力欄をタップしてください。", 429: "操作が多すぎます。少し待ってください。"}
-		raise ToolError("HTTP %d: %s %s" % (e.code, detail, hints.get(e.code, ""))) from None
-	except (urllib.error.URLError, OSError):
-		raise ToolError("画面操作サービスに接続できません。設定 > ユーザー補助 で『Phone-Linux 画面操作』をオンにしてください (127.0.0.1:%s)。" % base_url().rsplit(":", 1)[-1]) from None
+		raise ToolError("HTTP %d: %s %s" % (status, detail, hints.get(status, "")))
+	return body, ctype
 
 
 def call_tool(name, args):

@@ -6,7 +6,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.provider.Settings;
-import android.text.InputType;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.ArrayAdapter;
@@ -62,21 +61,12 @@ public class PhoneLinuxPhoneSettingsActivity extends AppCompatActivity {
         root.addView(title);
 
         String status = PhoneControlService.isRunning()
-            ? getString(R.string.phone_linux_phone_status_on, PhoneApiConfig.port(this))
+            ? getString(R.string.phone_linux_phone_status_on, PhoneApiConfig.SOCKET_FILE.getPath())
             : PhoneControlService.lastError() != null
                 ? getString(R.string.phone_linux_phone_status_error, PhoneControlService.lastError())
                 : getString(R.string.phone_linux_phone_status_off);
         root.addView(text(status, 16));
         root.addView(button(R.string.phone_linux_phone_open_accessibility, v -> startActivity(new Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS))));
-
-        LinearLayout portRow = new LinearLayout(this);
-        EditText port = new EditText(this);
-        port.setInputType(InputType.TYPE_CLASS_NUMBER);
-        port.setText(String.valueOf(PhoneApiConfig.port(this)));
-        port.setHint(R.string.phone_linux_phone_port);
-        portRow.addView(port, new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
-        portRow.addView(button(R.string.phone_linux_phone_save_port, v -> savePort(port.getText().toString())));
-        root.addView(portRow);
 
         root.addView(text(getString(R.string.phone_linux_phone_keys), 18));
         root.addView(button(R.string.phone_linux_phone_claude_key, v -> {
@@ -99,18 +89,6 @@ public class PhoneLinuxPhoneSettingsActivity extends AppCompatActivity {
             row.addView(text(line, 14), new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1));
             row.addView(button(R.string.phone_linux_phone_revoke, v -> revoke(k)));
             root.addView(row);
-        }
-    }
-
-    private void savePort(String value) {
-        try {
-            int p = Integer.parseInt(value.trim());
-            if (p < 1024 || p > 65535) throw new NumberFormatException();
-            PhoneApiConfig.setPort(this, p);
-            PhoneControlService.restart();
-            refresh();
-        } catch (NumberFormatException | IOException e) {
-            Toast.makeText(this, R.string.phone_linux_phone_port_invalid, Toast.LENGTH_SHORT).show();
         }
     }
 

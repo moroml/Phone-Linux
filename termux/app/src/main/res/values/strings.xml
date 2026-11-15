@@ -284,13 +284,12 @@
     <string name="phone_linux_confirm_allow">許可</string>
     <string name="phone_linux_confirm_deny">拒否</string>
     <string name="phone_linux_phone_title">スマホ操作 (Claude Code 用)</string>
-    <string name="phone_linux_phone_status_on">有効です (127.0.0.1:%1$d で待ち受け中)</string>
+    <string name="phone_linux_phone_status_on">有効です (Unix ソケットで待ち受け中)
+%1$s
+curl --unix-socket %1$s http://localhost/v1/health</string>
     <string name="phone_linux_phone_status_off">無効です。ユーザー補助の設定で「Phone-Linux 画面操作」をオンにしてください。</string>
     <string name="phone_linux_phone_status_error">待ち受けに失敗しました: %1$s</string>
     <string name="phone_linux_phone_open_accessibility">ユーザー補助の設定を開く</string>
-    <string name="phone_linux_phone_port">ポート</string>
-    <string name="phone_linux_phone_save_port">保存</string>
-    <string name="phone_linux_phone_port_invalid">1024〜65535 の数字を入れてください</string>
     <string name="phone_linux_phone_keys">鍵</string>
     <string name="phone_linux_phone_claude_key">Claude Code 用の鍵を作成</string>
     <string name="phone_linux_phone_claude_key_done">鍵を作成し、%1$s に保存しました</string>

@@ -127,6 +127,19 @@ public class PhoneApiTest {
     }
 
     @Test
+    public void serveAnswersOneHttpRequestOnPlainStreams() throws Exception {
+        String token = issue("read", 0, false).token;
+        java.io.ByteArrayOutputStream out = new java.io.ByteArrayOutputStream();
+        PhoneApiServer.serve(handler, new ByteArrayInputStream(("GET /v1/ui HTTP/1.1\r\nHost: localhost\r\nAuthorization: Bearer " + token + "\r\n\r\n").getBytes(StandardCharsets.ISO_8859_1)), out);
+        String reply = new String(out.toByteArray(), StandardCharsets.UTF_8);
+        assertTrue(reply.startsWith("HTTP/1.1 200 OK\r\n"));
+        assertTrue(reply.endsWith("{\"root\":{}}"));
+        out.reset();
+        PhoneApiServer.serve(handler, new ByteArrayInputStream("garbage\r\n\r\n".getBytes(StandardCharsets.ISO_8859_1)), out);
+        assertTrue(new String(out.toByteArray(), StandardCharsets.UTF_8).startsWith("HTTP/1.1 400 "));
+    }
+
+    @Test
     public void responseSerializes() {
         String wire = new String(call("GET", "/v1/health", null, null).toBytes(), StandardCharsets.ISO_8859_1);
         assertTrue(wire.startsWith("HTTP/1.1 200 OK\r\n"));

@@ -49,12 +49,6 @@ public class PhoneControlService extends AccessibilityService implements PhoneAc
         return serverError;
     }
 
-    /** Re-binds the API socket, e.g. after the port changed. */
-    public static void restart() {
-        PhoneControlService s = instance;
-        if (s != null) s.startServer();
-    }
-
     @Override
     protected void onServiceConnected() {
         instance = this;
@@ -87,7 +81,7 @@ public class PhoneControlService extends AccessibilityService implements PhoneAc
         confirmer.register();
         PhoneApiHandler handler = new PhoneApiHandler(PhoneApiConfig.keys(this), this, confirmer,
             PhoneApiServer.fileLog(PhoneApiConfig.LOG_FILE), System::currentTimeMillis);
-        PhoneApiServer s = new PhoneApiServer(PhoneApiConfig.port(this), handler);
+        PhoneApiServer s = new PhoneApiServer(PhoneApiConfig.SOCKET_FILE, handler);
         try {
             s.start();
             server = s;

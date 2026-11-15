@@ -1,7 +1,12 @@
 """Runs the phone-mcp asset script against a mock phone API. Run: python -I test_phone_mcp.py"""
 import base64
+import http.client
+import importlib.machinery
+import importlib.util
 import json
 import os
+import socket
+import socketserver
 import subprocess
 import sys
 import tempfile
@@ -70,7 +75,7 @@ class PhoneMcpTest(unittest.TestCase):
 
 	def run_mcp(self, messages, url=None, extra_env=None):
 		env = {k: v for k, v in os.environ.items() if not k.startswith("PHONE_API")}
-		env.update(HOME=self.home, USERPROFILE=self.home, PHONE_API_URL=url or "http://127.0.0.1:%d" % self.server.server_port)
+		env.update(HOME=self.home, USERPROFILE=self.home, PHONE_API_TEST_URL=url or "http://127.0.0.1:%d" % self.server.server_port)
 		env.update(extra_env or {})
 		p = subprocess.run([sys.executable, "-I", SCRIPT], input="\n".join(json.dumps(m) for m in messages) + "\n",
 			capture_output=True, text=True, env=env, timeout=60)
@@ -179,16 +184,69 @@ class PhoneMcpTest(unittest.TestCase):
 		self.assertEqual(out[6]["result"], {})
 		self.assertEqual(Phone.seen, [])
 
-	def test_port_file_is_used(self):
-		with open(os.path.join(self.home, ".phone-linux", "phone-api-port"), "w") as f:
-			f.write("1\n")
+
+def load_module():
+	loader = importlib.machinery.SourceFileLoader("phone_mcp", SCRIPT)
+	spec = importlib.util.spec_from_loader("phone_mcp", loader)
+	mod = importlib.util.module_from_spec(spec)
+	loader.exec_module(mod)
+	return mod
+
+
+class TransportTest(unittest.TestCase):
+	"""The transport is injectable so the logic runs on Windows, where Python has no AF_UNIX."""
+
+	def setUp(self):
+		self.mod = load_module()
+		self.saved = dict(os.environ)
+		for k in [k for k in os.environ if k.startswith("PHONE_API")]:
+			del os.environ[k]
+		self.home = tempfile.mkdtemp()
+		os.environ.update(HOME=self.home, USERPROFILE=self.home, PHONE_API_KEY="plk_x")
+
+	def tearDown(self):
+		os.environ.clear()
+		os.environ.update(self.saved)
+
+	def test_default_transport_is_the_private_unix_socket_not_tcp(self):
+		os.environ["PREFIX"] = "/p"
+		self.assertEqual(self.mod.socket_path().replace("\\", "/"), "/p/var/run/phone-linux/phone-api.sock")
+		os.environ["PHONE_API_SOCKET"] = "/x/y.sock"
+		conn = self.mod.connect()
+		self.assertIsInstance(conn, self.mod.UnixHTTPConnection)
+		self.assertEqual(conn.socket_path, "/x/y.sock")
+		self.assertEqual(conn.host, "localhost")
+
+	def test_ignores_legacy_tcp_settings(self):
+		os.environ["PHONE_API_URL"] = "http://127.0.0.1:18765"
+		os.environ["PHONE_API_PORT"] = "18765"
+		self.assertIsInstance(self.mod.connect(), self.mod.UnixHTTPConnection)
+
+	def test_connect_failure_names_the_socket(self):
+		os.environ["PHONE_API_SOCKET"] = "/x/y.sock"
+		self.mod.connect = lambda: http.client.HTTPConnection("127.0.0.1", 1, timeout=2)
+		with self.assertRaises(self.mod.ToolError) as cm:
+			self.mod.api("GET", "/v1/ui", {})
+		self.assertIn("/x/y.sock", str(cm.exception))
+
+	@unittest.skipUnless(hasattr(socket, "AF_UNIX"), "no AF_UNIX on this platform")
+	def test_real_unix_socket_round_trip(self):
+		class Server(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
+			daemon_threads = True
+
+		Phone.seen.clear()
+		Phone.fail = None
+		path = os.path.join(tempfile.mkdtemp(), "p.sock")
+		server = Server(path, Phone)
+		threading.Thread(target=server.serve_forever, daemon=True).start()
 		try:
-			env = {"PHONE_API_URL": ""}
-			r = self.call("phone_screenshot", url="", extra_env=env)["result"]
-			self.assertTrue(r["isError"])
-			self.assertIn("127.0.0.1:1", r["content"][0]["text"])
+			os.environ["PHONE_API_SOCKET"] = path
+			body, ctype = self.mod.api("POST", "/v1/tap", {"x": 1, "y": 2})
+			self.assertEqual(json.loads(body), {"ok": True})
+			self.assertEqual(Phone.seen[0], ("POST", "/v1/tap", "Bearer plk_x", {"x": 1, "y": 2}))
 		finally:
-			os.remove(os.path.join(self.home, ".phone-linux", "phone-api-port"))
+			server.shutdown()
+			server.server_close()
 
 
 if __name__ == "__main__":
