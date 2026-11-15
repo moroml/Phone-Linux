@@ -6,11 +6,12 @@ import static org.junit.Assert.assertTrue;
 import android.app.job.JobInfo;
 import android.content.Context;
 
-import androidx.test.core.app.ApplicationProvider;
+
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.RuntimeEnvironment;
 
 import java.util.concurrent.TimeUnit;
 
@@ -32,7 +33,7 @@ public class PhoneLinuxUpdateTest {
 
     @Test
     public void jobRequiresChargingUnmeteredAndPersists() {
-        Context context = ApplicationProvider.getApplicationContext();
+        Context context = RuntimeEnvironment.getApplication();
         JobInfo info = PhoneLinuxUpdateJob.buildJobInfo(context);
         assertTrue(info.isRequireCharging());
         assertTrue(info.isPersisted());
