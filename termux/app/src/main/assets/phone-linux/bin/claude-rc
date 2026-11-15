@@ -1,6 +1,8 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # phone-linux: run Claude Code Remote Control with the screen kept awake. Usage: claude-rc [NAME]
+# Trust for $HOME is never saved, so start from ~/projects instead.
 name=${1:-Galaxy}
+if [ "$PWD" = "$HOME" ]; then mkdir -p "$HOME/projects" && cd "$HOME/projects" || exit 1; fi
 termux-wake-lock
 trap 'termux-wake-unlock' EXIT
 claude remote-control --name "$name"
