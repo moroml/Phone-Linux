@@ -86,7 +86,10 @@ GitHub 版 Termux と同じ公開テスト鍵（`testkey_untrusted.jks`）で署
 - **完了条件・検証**: ホーム画面に Phone-Linux が出る。`pkg install` が公式の配布元から通る。退避した `$HOME` を戻せる。
 - **依存**: なし。
 
-### 段階1: Claude Code が最初から動く
+### 段階1: Claude Code が最初から動く（2026-11-15 実装済み）
+- 実装では、道具を bootstrap に詰め込む代わりに、アプリが同梱スクリプトを起動のたびに `$PREFIX` へ置き、初回の対話シェルで `phone-linux-setup` を1回だけ自動実行する形にした。Claude Code はどのみちネットから取るので、bootstrap を作り直す手間（glibc 用の別リポジトリの扱いを含む）に見合わないため。
+- Claude Code の入手は `claude-update`（公式の配布元から linux-arm64 版を取り、manifest の SHA-256 で検証。直前の版を残し、`claude-update <版>` で戻せる）。
+- `xdg-open` は Termux に最初からある（termux-open）ので作らない。
 - **目的**: 初回セットアップだけで、`claude` が proot なしで使える。
 - **変更対象**: 自作の bootstrap（`ADDITIONAL_PACKAGES` に git・ripgrep・python・glibc-repo・glibc-runner・android-tools）、`claude-native`・`claude-shell`・`claude-update` を入れる初回スクリプト。
 - **具体的な変更**: termux-packages の `generate-bootstraps.sh` で、公式の配布元から bootstrap を作る（作り直しは不要）。Claude Code の入手と更新の方法を決めて組み込む。
