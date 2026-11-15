@@ -10,6 +10,8 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Build;
 
+import androidx.core.content.ContextCompat;
+
 import com.termux.R;
 
 import java.util.Map;
@@ -49,8 +51,7 @@ final class PhoneConfirmer implements PhoneApiHandler.Confirmer {
 
     void register() {
         IntentFilter filter = new IntentFilter(ACTION);
-        if (Build.VERSION.SDK_INT >= 33) context.registerReceiver(receiver, filter, Context.RECEIVER_NOT_EXPORTED);
-        else context.registerReceiver(receiver, filter);
+        ContextCompat.registerReceiver(context, receiver, filter, ContextCompat.RECEIVER_NOT_EXPORTED);
     }
 
     void unregister() {
