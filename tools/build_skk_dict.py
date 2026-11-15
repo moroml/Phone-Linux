@@ -4,12 +4,12 @@
 Source:  https://raw.githubusercontent.com/skk-dev/dict/master/SKK-JISYO.L
          (EUC-JP, GPLv2-or-later, see the generated LICENSE-SKK-JISYO.txt)
 
-Output tsv.gz: UTF-8, one line per reading `reading<TAB>cand1/cand2/...`, sorted by reading in
+Output (gzip, saved as .tsv.gzip because the Android build unpacks *.gz assets): UTF-8, one line per reading `reading<TAB>cand1/cand2/...`, sorted by reading in
 Java String (UTF-16 code unit) order. Okuri-ari entries (reading ends with an ASCII letter,
 e.g. `かk`) and okuri-nasi entries share the one sorted file. `;annotations` are stripped and
 SKK lisp candidates such as `(concat ...)` are dropped.
 
-Usage: build_skk_dict.py SKK-JISYO.L out.tsv.gz license.txt
+Usage: build_skk_dict.py SKK-JISYO.L out.tsv.gzip license.txt
 """
 import gzip
 import re

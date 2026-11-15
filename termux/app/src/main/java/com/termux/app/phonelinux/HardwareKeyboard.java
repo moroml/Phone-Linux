@@ -4,6 +4,7 @@ import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
 import com.termux.app.TermuxActivity;
+import com.termux.shared.logger.Logger;
 import com.termux.shared.termux.TermuxConstants;
 import com.termux.terminal.TerminalSession;
 import com.termux.view.HardwareKeyHook;
@@ -46,8 +47,9 @@ public final class HardwareKeyboard implements HardwareKeyHook {
                 try {
                     UserDictionary user = new UserDictionary(new File(TermuxConstants.TERMUX_HOME_DIR_PATH + "/.phone-linux/user-dict.tsv"));
                     mComposition.setConverter(new KanaKanjiConverter(SkkDictionary.fromAsset(context), user));
-                } catch (Throwable ignored) {
+                } catch (Throwable t) {
                     // no dictionary: conversion stays off
+                    Logger.logStackTraceWithMessage("PhoneLinuxKeys", "Failed to load the kana-kanji dictionary", t);
                 }
             }
         }, "phone-linux-dict").start();

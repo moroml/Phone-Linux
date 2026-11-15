@@ -23,7 +23,8 @@ import java.util.zip.GZIPInputStream;
  */
 public final class SkkDictionary implements KanaDictionary {
 
-    private static final String ASSET = "phone-linux-dict/skk-jisyo-l.tsv.gz";
+    // Not ".gz": the Android build would decompress that and drop the extension.
+    private static final String ASSET = "phone-linux-dict/skk-jisyo-l.tsv.gzip";
 
     private final byte[] mData;
     private final int[] mOffsets;
