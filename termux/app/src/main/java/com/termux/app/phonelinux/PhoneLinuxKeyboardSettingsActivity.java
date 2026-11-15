@@ -32,6 +32,7 @@ public class PhoneLinuxKeyboardSettingsActivity extends AppCompatActivity {
         R.string.phone_linux_kb_action_new_session, R.string.phone_linux_kb_action_next_session,
         R.string.phone_linux_kb_action_prev_session, R.string.phone_linux_kb_action_font_up,
         R.string.phone_linux_kb_action_font_down, R.string.phone_linux_kb_action_insert_image,
+        R.string.phone_linux_kb_action_newline,
     };
 
     @Override

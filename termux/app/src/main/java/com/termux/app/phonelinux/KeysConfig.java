@@ -27,8 +27,9 @@ public final class KeysConfig {
     public static final String FONT_UP = "font_up";
     public static final String FONT_DOWN = "font_down";
     public static final String INSERT_IMAGE = "insert_image";
+    public static final String NEWLINE = "newline";
 
-    public static final String[] ACTIONS = {COPY, PASTE, NEW_SESSION, NEXT_SESSION, PREV_SESSION, FONT_UP, FONT_DOWN, INSERT_IMAGE};
+    public static final String[] ACTIONS = {COPY, PASTE, NEW_SESSION, NEXT_SESSION, PREV_SESSION, FONT_UP, FONT_DOWN, INSERT_IMAGE, NEWLINE};
 
     private static final Map<String, String> DEFAULTS = new LinkedHashMap<>();
 
@@ -41,6 +42,7 @@ public final class KeysConfig {
         DEFAULTS.put(FONT_UP, "ctrl+=");
         DEFAULTS.put(FONT_DOWN, "ctrl+-");
         DEFAULTS.put(INSERT_IMAGE, "ctrl+shift+i");
+        DEFAULTS.put(NEWLINE, "shift+enter");
     }
 
     public boolean jis = true;

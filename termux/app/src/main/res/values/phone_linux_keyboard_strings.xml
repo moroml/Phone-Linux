@@ -20,4 +20,5 @@
     <string name="phone_linux_kb_action_font_up">文字を大きく</string>
     <string name="phone_linux_kb_action_font_down">文字を小さく</string>
     <string name="phone_linux_kb_action_insert_image">画像を挿入</string>
+    <string name="phone_linux_kb_action_newline">改行(送信せずに次の行へ)</string>
 </resources>

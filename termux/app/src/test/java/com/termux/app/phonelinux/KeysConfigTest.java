@@ -32,6 +32,8 @@ public class KeysConfigTest {
         assertEquals(KeysConfig.PREV_SESSION, c.actionFor(KeyEvent.KEYCODE_TAB, NONE, true, true, false));
         assertEquals(KeysConfig.INSERT_IMAGE, c.actionFor(KeyEvent.KEYCODE_I, 'I', true, true, false));
         assertEquals(KeysConfig.FONT_DOWN, c.actionFor(KeyEvent.KEYCODE_MINUS, '-', true, false, false));
+        assertEquals(KeysConfig.NEWLINE, c.actionFor(KeyEvent.KEYCODE_ENTER, NONE, false, true, false));
+        assertNull(c.actionFor(KeyEvent.KEYCODE_ENTER, NONE, false, false, false));
     }
 
     @Test

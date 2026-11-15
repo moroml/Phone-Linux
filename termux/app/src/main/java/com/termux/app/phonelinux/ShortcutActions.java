@@ -2,6 +2,7 @@ package com.termux.app.phonelinux;
 
 import com.termux.app.TermuxActivity;
 import com.termux.shared.interact.ShareUtils;
+import com.termux.terminal.TerminalSession;
 
 /** Actions the hardware keyboard shortcuts can trigger. */
 public final class ShortcutActions {
@@ -10,7 +11,7 @@ public final class ShortcutActions {
 
     /** Whether holding the key should repeat the action. */
     static boolean isRepeatable(String action) {
-        return KeysConfig.FONT_UP.equals(action) || KeysConfig.FONT_DOWN.equals(action);
+        return KeysConfig.FONT_UP.equals(action) || KeysConfig.FONT_DOWN.equals(action) || KeysConfig.NEWLINE.equals(action);
     }
 
     public static void run(String action, TermuxActivity activity) {
@@ -41,6 +42,12 @@ public final class ShortcutActions {
             case KeysConfig.INSERT_IMAGE:
                 ImageInbox.pickImage(activity);
                 break;
+            case KeysConfig.NEWLINE: {
+                // ESC + CR (Meta+Enter): Claude Code inserts a line break instead of submitting.
+                TerminalSession session = activity.getTerminalView().getCurrentSession();
+                if (session != null) session.write("\033\r");
+                break;
+            }
             default:
                 break;
         }
