@@ -39,6 +39,18 @@
     </shortcut>
 
     <shortcut
+        android:shortcutId="remote_control"
+        android:enabled="true"
+        android:icon="@drawable/ic_new_session"
+        android:shortcutShortLabel="@string/phone_linux_remote_control"
+        tools:targetApi="n_mr1">
+        <intent
+            android:action="android.intent.action.RUN"
+            android:targetPackage="com.termux"
+            android:targetClass="com.termux.app.phonelinux.RemoteControlActivity"/>
+    </shortcut>
+
+    <shortcut
         android:shortcutId="settings"
         android:enabled="true"
         android:icon="@drawable/ic_settings"

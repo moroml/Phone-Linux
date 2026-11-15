@@ -253,6 +253,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         setSettingsButtonView();
 
         setNewSessionButtonView();
+        com.termux.app.phonelinux.PhoneLinuxLink.init(this);
 
         setToggleKeyboardView();
 
