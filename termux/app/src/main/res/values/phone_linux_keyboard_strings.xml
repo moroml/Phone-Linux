@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="phone_linux_insert_image_stub">画像の挿入はまだ実装されていません</string>
 
     <string name="phone_linux_kb_title">キーボード設定</string>
     <string name="phone_linux_kb_layout">物理キーボードの配列</string>

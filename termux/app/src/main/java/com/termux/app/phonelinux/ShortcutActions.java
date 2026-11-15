@@ -1,8 +1,5 @@
 package com.termux.app.phonelinux;
 
-import android.widget.Toast;
-
-import com.termux.R;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.interact.ShareUtils;
 
@@ -42,15 +39,10 @@ public final class ShortcutActions {
                 activity.getTermuxTerminalViewClient().changeFontSize(false);
                 break;
             case KeysConfig.INSERT_IMAGE:
-                insertImage(activity);
+                ImageInbox.pickImage(activity);
                 break;
             default:
                 break;
         }
-    }
-
-    /** Stub: another worker replaces this with the real image insertion. */
-    public static void insertImage(TermuxActivity activity) {
-        Toast.makeText(activity, R.string.phone_linux_insert_image_stub, Toast.LENGTH_SHORT).show();
     }
 }
