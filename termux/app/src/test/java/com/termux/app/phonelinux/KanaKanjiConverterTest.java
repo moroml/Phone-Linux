@@ -153,6 +153,18 @@ public class KanaKanjiConverterTest {
     }
 
     @Test
+    public void growingASegmentPastTheReadingLimitKeepsAllText() {
+        StringBuilder ks = new StringBuilder();
+        for (int i = 0; i < KanaKanjiConverter.MAX_READING; i++) ks.append('ぬ');
+        Conversion c = converter().convert(ks + "わたし");
+        while (c.focusReading().length() < KanaKanjiConverter.MAX_READING) assertTrue(c.resize(1));
+        assertTrue(c.resize(1)); // one kana past the limit
+        String span = ks + "わ";
+        assertEquals(span, c.focusReading());
+        assertTrue(c.text(), c.text().startsWith(span) && c.text().length() > span.length());
+    }
+
+    @Test
     public void userDictionaryKeepsAtMost2000Readings() {
         UserDictionary user = new UserDictionary(null);
         for (int i = 0; i < UserDictionary.MAX_READINGS + 5; i++) user.promote("よみ" + i, "字");

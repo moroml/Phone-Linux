@@ -142,8 +142,9 @@ public final class KanaKanjiConverter {
     private List<Node> nodesAt(String r, int i, int forcedEnd) {
         int n = r.length();
         List<Node> out = new ArrayList<>();
-        for (int j = i + 1; j <= Math.min(n, i + MAX_READING); j++) {
-            if (forcedEnd > 0 && j != forcedEnd) continue;
+        // A forced span may be longer than MAX_READING (Shift+Right); it still needs a node, or the text is lost.
+        int last = forcedEnd > 0 ? forcedEnd : Math.min(n, i + MAX_READING);
+        for (int j = forcedEnd > 0 ? forcedEnd : i + 1; j <= last; j++) {
             List<Word> words = words(r, i, j);
             for (Word w : words) out.add(new Node(i, j, w));
             if (words.isEmpty() && (j == i + 1 || j == forcedEnd)) out.add(new Node(i, j, unknown(r.substring(i, j))));
