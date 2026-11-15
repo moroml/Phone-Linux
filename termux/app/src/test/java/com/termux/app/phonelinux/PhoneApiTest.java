@@ -309,12 +309,13 @@ public class PhoneApiTest {
     }
 
     @Test
-    public void repeatedAuthFailuresAreThrottledEvenForValidKeys() throws Exception {
+    public void authFailuresAreThrottledButValidKeysKeepWorking() throws Exception {
         String token = issue("read", 0, false).token;
         for (int i = 0; i < 10; i++) assertEquals(401, call("GET", "/v1/ui", "bad" + i, null).status);
-        assertEquals(429, call("GET", "/v1/ui", token, null).status);
-        now += 60_000;
+        assertEquals(429, call("GET", "/v1/ui", "bad-more", null).status);
         assertEquals(200, call("GET", "/v1/ui", token, null).status);
+        now += 60_000;
+        assertEquals(401, call("GET", "/v1/ui", "bad-again", null).status);
     }
 
     @Test

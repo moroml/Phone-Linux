@@ -144,12 +144,11 @@ public final class PhoneApiHandler {
         if (req.path.equals("/v1/health")) {
             return req.method.equals("GET") ? json(200, kv("ok", true)) : error(405, "method not allowed");
         }
-        if (failures.isFull("fail", now)) return done(null, req, error(429, "too many failed attempts"), "");
         String auth = req.headers.get("authorization");
         PhoneApiKeys.Key key = null;
         if (auth != null && auth.regionMatches(true, 0, "Bearer ", 0, 7)) key = keys.find(auth.substring(7).trim());
         if (key == null || key.isExpired(now)) {
-            failures.tryAcquire("fail", now);
+            if (!failures.tryAcquire("fail", now)) return done(null, req, error(429, "too many failed attempts"), "");
             return done(null, req, error(401, key == null ? "missing or unknown key" : "key expired"), "");
         }
         if (!perKey.tryAcquire(key.id, now)) return done(key, req, error(429, "rate limit exceeded"), "");
