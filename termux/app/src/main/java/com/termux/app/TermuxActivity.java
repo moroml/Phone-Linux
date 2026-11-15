@@ -327,6 +327,7 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         mIsOnResumeAfterOnCreate = false;
 
         ImageInbox.flushPending(this);
+        com.termux.app.phonelinux.PhoneLinuxAppearance.onResume(this);
     }
 
     @Override

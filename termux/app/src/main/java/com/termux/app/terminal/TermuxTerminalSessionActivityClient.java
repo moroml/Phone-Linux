@@ -521,7 +521,7 @@ public class TermuxTerminalSessionActivityClient extends TermuxTerminalSessionCl
         if (!mActivity.isVisible()) return;
         TerminalSession session = mActivity.getCurrentSession();
         if (session != null && session.getEmulator() != null) {
-            mActivity.getWindow().getDecorView().setBackgroundColor(session.getEmulator().mColors.mCurrentColors[TextStyle.COLOR_INDEX_BACKGROUND]);
+            com.termux.app.phonelinux.PhoneLinuxAppearance.applyBackground(mActivity, session.getEmulator().mColors.mCurrentColors[TextStyle.COLOR_INDEX_BACKGROUND]);
         }
     }
 

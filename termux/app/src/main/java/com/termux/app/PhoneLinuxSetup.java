@@ -27,6 +27,7 @@ final class PhoneLinuxSetup {
     static void install(Context context) {
         try {
             copyTree(context, ASSET_ROOT, new File(TermuxConstants.TERMUX_PREFIX_DIR_PATH));
+            com.termux.app.phonelinux.PhoneLinuxAppearance.onSetupInstalled(context);
         } catch (IOException e) {
             Logger.logStackTraceWithMessage(LOG_TAG, "Failed to install Phone-Linux scripts", e);
         }
