@@ -31,6 +31,7 @@ public class KanaKanjiConverterTest {
         put("は", "葉", "歯");
         put("おもu", "思", "想");
         put("かt", "勝", "買");
+        put("でs", "出");
         List<String> many = new ArrayList<>();
         for (int i = 0; i < 12; i++) many.add("候補" + i);
         FIXTURE.put("ぬる", many);
@@ -90,6 +91,15 @@ public class KanaKanjiConverterTest {
         assertEquals(Arrays.asList("書く", "欠く", "かく", "カク"), c.pageCandidates());
         assertEquals("思う", converter().convert("おもう").text());
         assertEquals("勝った", converter().convert("かった").text());
+    }
+
+    @Test
+    public void functionWordsStayKana() {
+        // でs + す would read 出す, but です is kept as kana (kanji remain reachable as candidates)
+        Conversion c = converter().convert("がくせいです");
+        assertEquals("学生です", c.text());
+        c.moveFocus(1);
+        assertEquals(Arrays.asList("です", "出す", "デス"), c.pageCandidates());
     }
 
     @Test

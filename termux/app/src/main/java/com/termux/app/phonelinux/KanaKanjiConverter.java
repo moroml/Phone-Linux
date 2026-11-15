@@ -13,6 +13,12 @@ public final class KanaKanjiConverter {
 
     static final int MAX_READING = 16;
     private static final double WORD_COST = 1.0, SINGLE_PENALTY = 0.3, UNKNOWN_COST = 1.5;
+    /** Function words kept as kana: cheaper than any dictionary word so that 出す does not eat です. */
+    private static final String[] FUNCTION_WORDS = {
+        "でした", "ました", "です", "ます", "から", "まで", "など", "って", "ない", "いる", "ある", "こと", "ので", "のに",
+        "する", "した", "して", "され", "は", "が", "を", "に", "の", "で", "と", "も", "へ", "ね", "よ",
+    };
+    private static final double FUNCTION_COST = 0.5, OKURI_SHORT_STEM_PENALTY = 0.5;
     /** Okurigana that end verbs: an okuri-ari reading is listed before the plain word for these. */
     private static final String VERB_ENDINGS = "うくぐすつぬぶむる";
     private static final String[] OKURI_ROWS = {
@@ -67,6 +73,7 @@ public final class KanaKanjiConverter {
         double[] best = new double[n + 1];
         int[] next = new int[n + 1];
         List<List<Candidate>> chosen = new ArrayList<>();
+        boolean[] kanaFirst = new boolean[n + 1];
         for (int i = 0; i <= n; i++) chosen.add(null);
         for (int i = n - 1; i >= from; i--) {
             best[i] = UNKNOWN_COST + best[i + 1];
@@ -76,27 +83,38 @@ public final class KanaKanjiConverter {
                 if (cost >= best[i]) continue;
                 List<Candidate> words = wordCandidates(r, i, j);
                 if (words.isEmpty()) continue;
+                if (j - i == 2 && onlyOkuri(words, r.substring(i, j))) cost += OKURI_SHORT_STEM_PENALTY;
+                if (cost >= best[i]) continue;
                 best[i] = cost;
                 next[i] = j;
                 chosen.set(i, words);
+                kanaFirst[i] = false;
+            }
+            for (String fw : FUNCTION_WORDS) {
+                int j = i + fw.length();
+                if (j > n || !r.startsWith(fw, i) || FUNCTION_COST + best[j] >= best[i]) continue;
+                best[i] = FUNCTION_COST + best[j];
+                next[i] = j;
+                chosen.set(i, wordCandidates(r, i, j));
+                kanaFirst[i] = true;
             }
         }
         List<Segment> out = new ArrayList<>();
-        for (int i = from; i < n; i = next[i]) out.add(build(r, i, next[i], chosen.get(i)));
+        for (int i = from; i < n; i = next[i]) out.add(build(r, i, next[i], chosen.get(i), kanaFirst[i]));
         return out;
     }
 
     /** A segment forced to cover reading[i, j). */
     Segment span(String r, int i, int j) {
-        return build(r, i, j, wordCandidates(r, i, j));
+        return build(r, i, j, wordCandidates(r, i, j), false);
     }
 
-    private Segment build(String r, int i, int j, List<Candidate> words) {
+    private Segment build(String r, int i, int j, List<Candidate> words, boolean kanaFirst) {
         String hira = r.substring(i, j);
         Candidate kana = new Candidate(hira, null, null);
         Map<String, Candidate> out = new LinkedHashMap<>();
         if (words == null) words = new ArrayList<>();
-        if (j - i == 1) {
+        if (j - i == 1 || kanaFirst) {
             // particles stay kana unless the user has picked a word for this kana before
             for (Candidate c : words) if (mUser.lookup(c.key).contains(c.base)) out.putIfAbsent(c.text, c);
             out.putIfAbsent(hira, kana);
@@ -106,6 +124,11 @@ public final class KanaKanjiConverter {
         String kata = katakana(hira);
         out.putIfAbsent(kata, new Candidate(kata, null, null));
         return new Segment(i, j, new ArrayList<>(out.values()));
+    }
+
+    private static boolean onlyOkuri(List<Candidate> words, String reading) {
+        for (Candidate c : words) if (c.key.equals(reading)) return false;
+        return true;
     }
 
     /** Dictionary candidates for reading[i, j) as a word and as stem + okurigana. */
