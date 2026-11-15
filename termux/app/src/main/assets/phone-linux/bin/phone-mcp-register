@@ -1,0 +1,7 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: register the phone-mcp server with Claude Code (user scope), unless it already is.
+if claude mcp get phone >/dev/null 2>&1; then
+	echo "phone MCP は登録済みです。"
+	exit 0
+fi
+claude mcp add --scope user phone -- phone-mcp
