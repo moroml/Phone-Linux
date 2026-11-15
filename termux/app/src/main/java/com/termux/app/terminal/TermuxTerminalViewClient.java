@@ -18,6 +18,7 @@ import android.widget.ListView;
 import android.widget.Toast;
 
 import com.termux.R;
+import com.termux.app.phonelinux.HardwareKeyboard;
 import com.termux.app.TermuxActivity;
 import com.termux.shared.file.FileUtils;
 import com.termux.shared.interact.MessageDialogUtils;
@@ -71,6 +72,8 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
     private List<KeyboardShortcut> mSessionShortcuts;
 
+    private HardwareKeyboard mHardwareKeyboard;
+
     private static final String LOG_TAG = "TermuxTerminalViewClient";
 
     public TermuxTerminalViewClient(TermuxActivity activity, TermuxTerminalSessionActivityClient termuxTerminalSessionActivityClient) {
@@ -90,6 +93,8 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
 
         mActivity.getTerminalView().setTextSize(mActivity.getPreferences().getFontSize());
         mActivity.getTerminalView().setKeepScreenOn(mActivity.getPreferences().shouldKeepScreenOn());
+        mHardwareKeyboard = new HardwareKeyboard(mActivity);
+        mActivity.getTerminalView().mHardwareKeyHook = mHardwareKeyboard;
     }
 
     /**
@@ -110,6 +115,7 @@ public class TermuxTerminalViewClient extends TermuxTerminalViewClientBase {
      * Should be called when mActivity.onResume() is called
      */
     public void onResume() {
+        if (mHardwareKeyboard != null) mHardwareKeyboard.reload();
         // Show the soft keyboard if required
         setSoftKeyboardState(true, mActivity.isActivityRecreated());
 

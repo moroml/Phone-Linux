@@ -26,6 +26,9 @@ public final class TerminalRenderer {
     final Typeface mTypeface;
     private final Paint mTextPaint = new Paint();
 
+    /** ARGB cursor colour that replaces the emulator's one when non-zero (used to show the input mode). */
+    public int mCursorColorOverride;
+
     /** The width of a single mono spaced character obtained by {@link Paint#measureText(String)} on a single 'X'. */
     final float mFontWidth;
     /** The {@link Paint#getFontSpacing()}. See http://www.fampennings.nl/maarten/android/08numgrid/font.png */
@@ -140,7 +143,7 @@ public final class TerminalRenderer {
                     } else {
                         final int columnWidthSinceLastRun = column - lastRunStartColumn;
                         final int charsSinceLastRun = currentCharIndex - lastRunStartIndex;
-                        int cursorColor = lastRunInsideCursor ? mEmulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR] : 0;
+                        int cursorColor = lastRunInsideCursor ? (mCursorColorOverride != 0 ? mCursorColorOverride : mEmulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR]) : 0;
                         boolean invertCursorTextColor = false;
                         if (lastRunInsideCursor && cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK) {
                             invertCursorTextColor = true;
@@ -169,7 +172,7 @@ public final class TerminalRenderer {
 
             final int columnWidthSinceLastRun = columns - lastRunStartColumn;
             final int charsSinceLastRun = currentCharIndex - lastRunStartIndex;
-            int cursorColor = lastRunInsideCursor ? mEmulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR] : 0;
+            int cursorColor = lastRunInsideCursor ? (mCursorColorOverride != 0 ? mCursorColorOverride : mEmulator.mColors.mCurrentColors[TextStyle.COLOR_INDEX_CURSOR]) : 0;
             boolean invertCursorTextColor = false;
             if (lastRunInsideCursor && cursorShape == TerminalEmulator.TERMINAL_CURSOR_STYLE_BLOCK) {
                 invertCursorTextColor = true;
