@@ -32,6 +32,10 @@ Set-Location termux
 adb install -r termux\app\build\outputs\apk\debug\termux-app_apt-android-7-debug_arm64-v8a.apk
 ```
 
+## 自動テスト
+
+`main` と `feat/` で始まるブランチへの push、プルリクエストのたびに、GitHub Actions(`.github/workflows/ci.yml`)がビルドと単体テストを回す(約4分)。成功すると arm64 用の APK が7日間ダウンロードできる。
+
 ## リポジトリの中身
 
 | 場所 | 役割 |
