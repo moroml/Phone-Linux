@@ -1,4 +1,4 @@
-"""PC の Claude Code ハーネス(~/.claude と dotfiles の pack-router)をスマホの Termux 内 Ubuntu へ片方向で送る。
+"""PC の Claude Code ハーネス(~/.claude と dotfiles の pack-router)をスマホの Termux(ネイティブ)へ片方向で送る。
 
 使い方: python -I sync_to_phone.py [--dry-run]
 - PC が正。スマホ側の共有部分(skills・agents・hooks など)は毎回置き換える。kb はスマホで足した分を残す。
@@ -6,19 +6,22 @@
 - settings.json はスマホ用に組み立て、スマホ側の theme などは残す。
 起源: 2026-11-15 ユーザー指示「スマホの claude にもハーネスを」。dotfiles の ai-sync は双方向で、
   スマホ用に書き換えた settings.json が PC に戻ると PC の hooks を壊すため、片方向の別経路にした。
+  同日、proot の Ubuntu をやめ Termux ネイティブで動かす方針に変えたため、送り先を Termux のホームに付け替えた。
 """
 import io, json, os, re, subprocess, sys, tarfile, time
 from pathlib import Path
 
-sys.stdout.reconfigure(encoding="utf-8")
+if __name__ == "__main__":
+    sys.stdout.reconfigure(encoding="utf-8")
 ADB = os.environ.get("ADB", "adb")  # PATH に無ければ環境変数 ADB に adb.exe の場所を入れる
 HOME = Path.home()
 CL = HOME / ".claude"
 DOT = HOME / "dotfiles"
 TERMUX = "/data/data/com.termux/files"
-PHONE_HOME = "/root"
+PHONE_HOME = f"{TERMUX}/home"
+PHONE_PY = f"{TERMUX}/usr/bin/python"
 
-# (PC 側の元, スマホ側の置き場所 /root 起点)。置き換え対象のフォルダ
+# (PC 側の元, スマホ側の置き場所 ホーム起点)。置き換え対象のフォルダ
 TREES = [
     (CL / "skills", ".claude/skills"),
     (CL / "agents", ".claude/agents"),
@@ -41,18 +44,26 @@ SKIP_EXT = {".pyc", ".cmd", ".ps1", ".psm1", ".exe", ".log", ".bak"}
 SKIP_NAMES = {"codex-reviewer.md", "local-reviewer.md", "kev-gate-hook.py", "browser-batch-approve.py",
               ".env", ".credentials.json", "update.log"}
 TEXT_EXT = {".md", ".py", ".json", ".txt", ".toml", ".yaml", ".yml", ".sh", ".js", ".ts", ".html", ".css", ".csv"}
-# ホーム部分と、その後ろに続くパスをまとめて捕まえ、区切り(\ と JSON の \\)を / にそろえる
-HOME_RE = re.compile(r"(?:/?/c/|[Cc]:(?:\\\\|\\|/))Users(?:\\\\|\\|/)" + re.escape(HOME.name)
-                     + r"((?:(?:\\\\|\\|/)[\w.~-]+)*)", re.I)
-to_phone = lambda m: PHONE_HOME + re.sub(r"\\\\|\\", "/", m.group(1))
+
+
+def home_re(name: str) -> re.Pattern:
+    """Windows のホーム(C:\\Users\\name、C:/Users/name、/c/Users/name、JSON の \\\\ 区切り)とその後ろのパスを捕まえる。"""
+    return re.compile(r"(?:/?/c/|[Cc]:(?:\\\\|\\|/))Users(?:\\\\|\\|/)" + re.escape(name)
+                      + r"((?:(?:\\\\|\\|/)[\w.~-]+)*)", re.I)
+
+
+def rewrite_home(text: str, name: str = HOME.name) -> str:
+    """Windows ホーム配下のパスを Termux のホームに付け替え、区切りを / にそろえる。"""
+    return home_re(name).sub(lambda m: PHONE_HOME + re.sub(r"\\\\|\\", "/", m.group(1)), text)
+
 
 PHONE_RULE = """# スマホ(Android)で動いているときの前提
 
-- ここは Galaxy の Termux の中の Ubuntu(proot)。Windows・PowerShell・`C:\\` のパスは無い。CLAUDE.md の Windows 前提の記述は、この環境に読み替える。
-- 作業場所は起動したフォルダ(`/mnt/cwd`。Termux の `~/projects` など)。`C:\\project` の代わりにここを使う。
-- スマホの内部ストレージは `/sdcard`。写真などを消す・上書きする前は、ユーザーに確認する。
+- ここは Galaxy の Termux(Ubuntu などの仮想環境ではなく、ネイティブの Android 上)。Windows・PowerShell・`C:\\` のパスは無い。CLAUDE.md の Windows 前提の記述は、この環境に読み替える。
+- 作業場所は起動した Termux の現在のフォルダ(`~/projects` など)。`C:\\project` の代わりにここを使う。ホームは `/data/data/com.termux/files/home`(`~`)。
+- スマホの内部ストレージは `~/storage`(`~/storage/shared` が `/sdcard` 相当)。写真などを消す・上書きする前は、ユーザーに確認する。
 - 使えないもの: codex-reviewer・local-reviewer(codex と ollama が無い)、kev-gate、ブラウザ操作、managed settings と githooks の強制。レビューは supervisor など Claude のエージェントで代える。
-- kb は `python -I /root/.claude/scripts/kb.py`。
+- kb は `python -I ~/.claude/scripts/kb.py`。
 - `~/.claude` の skills・agents・hooks・rules・CLAUDE.md・settings の共有部分は PC から片方向で上書きされる。ここで直しても次の同期で消えるので、恒久的な変更は PC 側で行う。kb への add は残る。
 """
 
@@ -67,7 +78,7 @@ def data_of(p: Path) -> bytes:
     b = p.read_bytes()
     if p.suffix.lower() in TEXT_EXT:
         try:
-            b = HOME_RE.sub(to_phone, b.decode("utf-8")).encode("utf-8")
+            b = rewrite_home(b.decode("utf-8")).encode("utf-8")
         except UnicodeDecodeError:
             pass
     return b
@@ -75,7 +86,7 @@ def data_of(p: Path) -> bytes:
 
 def phone_settings() -> dict:
     pc = json.loads((CL / "settings.json").read_text(encoding="utf-8"))
-    py = "python3 -I /root/.claude"
+    py = f"{PHONE_PY} -I {PHONE_HOME}/.claude"
     hook = lambda cmd, t=10: {"type": "command", "command": f"{py}/{cmd}", "timeout": t}
     env = {k: v for k, v in pc.get("env", {}).items()
            if k not in {"CLAUDE_CODE_USE_POWERSHELL_TOOL", "PANEL_CODEX_CMD"}}
@@ -87,9 +98,9 @@ def phone_settings() -> dict:
         "skillOverrides": pc.get("skillOverrides", {}), "skipWorkflowUsageWarning": True, "env": env,
         "enabledPlugins": {k: v for k, v in pc.get("enabledPlugins", {}).items() if v},
         "extraKnownMarketplaces": {"local-curated": {"source": {"source": "directory",
-                                                                 "path": "/root/.claude/local-plugins"}}},
+                                                                 "path": f"{PHONE_HOME}/.claude/local-plugins"}}},
         "permissions": {
-            "allow": ["Glob", "Grep", "Read", "Edit(//mnt/cwd/**)"] + bash(perms.get("allow", [])),
+            "allow": ["Glob", "Grep", "Read", "Edit(./**)"] + bash(perms.get("allow", [])),
             "deny": bash(perms.get("deny", [])), "ask": bash(perms.get("ask", [])),
             "defaultMode": "auto"},
         "hooks": {
@@ -124,13 +135,14 @@ def build() -> tuple[bytes, int]:
 
 
 APPLY = r"""set -e
-cd /root
-/usr/bin/python3 -c 'import yaml' 2>/dev/null || {{ apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq python3 python-is-python3 python3-yaml >/dev/null; }}
+cd "$HOME"
+python -c 'import yaml' 2>/dev/null || pip install pyyaml
 for d in {replace}; do [ -d "$d" ] && find "$d" -mindepth 1 -maxdepth 1 ! -name synced -exec rm -rf {{}} +; done
-tar xzf - -C /root
-/usr/bin/python3 - <<'PY'
+tar xzf - -C "$HOME"
+python - <<'PY'
 import json, os
-p, new = '/root/.claude/settings.json', json.load(open('/root/.phone-sync/settings.json'))
+home = os.environ['HOME']
+p, new = home + '/.claude/settings.json', json.load(open(home + '/.phone-sync/settings.json'))
 cur = json.load(open(p)) if os.path.exists(p) else {{}}
 cur.update(new); json.dump(cur, open(p, 'w'), ensure_ascii=False, indent=2)
 PY
@@ -146,10 +158,10 @@ def run(cmd: str, data: bytes | None = None) -> str:
     return out
 
 
-def in_ubuntu(script: str) -> str:
-    # run-as で Termux として proot の Ubuntu に入り、標準入力をそのまま渡す
-    env = f"env -i HOME={TERMUX}/home PREFIX={TERMUX}/usr PATH={TERMUX}/usr/bin TMPDIR={TERMUX}/usr/tmp"
-    return f"run-as com.termux {env} {TERMUX}/usr/bin/proot-distro login ubuntu -- bash -c {sh_quote(script)}"
+def in_termux(script: str) -> str:
+    # run-as で Termux として入り、標準入力をそのまま渡す
+    env = f"env -i HOME={PHONE_HOME} PREFIX={TERMUX}/usr PATH={TERMUX}/usr/bin TMPDIR={TERMUX}/usr/tmp LANG=C.UTF-8"
+    return f"run-as com.termux {env} {TERMUX}/usr/bin/bash -c {sh_quote(script)}"
 
 
 def sh_quote(s: str) -> str:
@@ -168,8 +180,8 @@ def main():
         subprocess.run([ADB, "push", str(tmp), remote], check=True, capture_output=True)
     finally:
         tmp.unlink()
-    replace = " ".join(f"/root/{d}" for _, d in TREES)
-    print(run(f"cat {remote} | " + in_ubuntu(APPLY.format(replace=replace))).strip())
+    replace = " ".join(f'"$HOME/{d}"' for _, d in TREES)
+    print(run(f"cat {remote} | " + in_termux(APPLY.format(replace=replace))).strip())
     run(f"rm -f {remote}")
 
 
