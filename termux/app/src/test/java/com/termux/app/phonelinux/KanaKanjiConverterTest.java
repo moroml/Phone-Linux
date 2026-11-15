@@ -9,48 +9,15 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 public class KanaKanjiConverterTest {
 
     @Rule
     public TemporaryFolder tmp = new TemporaryFolder();
 
-    private static final Map<String, List<String>> FIXTURE = new HashMap<>();
-
-    static {
-        put("わたし", "私", "渡し");
-        put("がくせい", "学生");
-        put("かk", "書", "欠");
-        put("きょう", "今日");
-        put("てんき", "天気");
-        put("は", "葉", "歯");
-        put("おもu", "思", "想");
-        put("かt", "勝", "買");
-        put("でs", "出");
-        List<String> many = new ArrayList<>();
-        for (int i = 0; i < 12; i++) many.add("候補" + i);
-        FIXTURE.put("ぬる", many);
-    }
-
-    private static void put(String k, String... v) {
-        FIXTURE.put(k, Arrays.asList(v));
-    }
-
-    private static final KanaDictionary DICT = new KanaDictionary() {
-        @Override
-        public List<String> lookup(String key) {
-            List<String> v = FIXTURE.get(key);
-            return v == null ? new ArrayList<String>() : new ArrayList<>(v);
-        }
-    };
-
     private static KanaKanjiConverter converter(UserDictionary user) {
-        return new KanaKanjiConverter(DICT, user);
+        return new KanaKanjiConverter(new FixtureDictionary(), user);
     }
 
     private static KanaKanjiConverter converter() {
@@ -85,21 +52,32 @@ public class KanaKanjiConverterTest {
     }
 
     @Test
-    public void okuriAri() {
+    public void inflectedFormsComeFromTheDictionary() {
         Conversion c = converter().convert("かく");
         assertEquals("書く", c.text());
         assertEquals(Arrays.asList("書く", "欠く", "かく", "カク"), c.pageCandidates());
-        assertEquals("思う", converter().convert("おもう").text());
-        assertEquals("勝った", converter().convert("かった").text());
+        Conversion k = converter().convert("かった");
+        assertEquals("買った", k.text());
+        assertEquals(2, k.segmentCount());
+    }
+
+    @Test
+    public void connectionCostBreaksTies() {
+        // 橋 is cheaper as a word, but 箸 connects better after ご飯
+        Conversion c = converter().convert("ごはんはし");
+        assertEquals("ご飯箸", c.text());
+        c.moveFocus(1);
+        assertEquals(Arrays.asList("箸", "橋", "はし", "ハシ"), c.pageCandidates());
+        assertEquals("橋", converter().convert("はし").text());
     }
 
     @Test
     public void functionWordsStayKana() {
-        // でs + す would read 出す, but です is kept as kana (kanji remain reachable as candidates)
+        // です beats で + 巣 on connection cost
         Conversion c = converter().convert("がくせいです");
         assertEquals("学生です", c.text());
         c.moveFocus(1);
-        assertEquals(Arrays.asList("です", "出す", "デス"), c.pageCandidates());
+        assertEquals(Arrays.asList("です", "デス"), c.pageCandidates());
     }
 
     @Test
@@ -151,7 +129,7 @@ public class KanaKanjiConverterTest {
         assertEquals("渡し", converter(user).convert("わたし").text());
         // persisted
         assertEquals("渡し", converter(new UserDictionary(f)).convert("わたし").text());
-        // learning an okuri-ari choice
+        // learning a verb choice
         Conversion k = converter(user).convert("かく");
         k.next();
         k.commit();
@@ -166,10 +144,12 @@ public class KanaKanjiConverterTest {
     }
 
     @Test
-    public void userEntriesUsedForSegmentation() {
+    public void learnedWordsAreCheaperInSegmentation() {
         UserDictionary user = new UserDictionary(null);
         user.promote("ぬぬ", "奴々");
         assertEquals("奴々", converter(user).convert("ぬぬ").text());
+        user.promote("がくせい", "学制");
+        assertEquals("学制", converter(user).convert("がくせい").text());
     }
 
     @Test

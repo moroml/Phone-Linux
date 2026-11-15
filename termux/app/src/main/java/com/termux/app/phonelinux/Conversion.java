@@ -95,9 +95,8 @@ public final class Conversion {
         Segment s = seg();
         int end = s.end + d;
         if (end <= s.start || end > mReading.length()) return false;
-        List<Segment> tail = new ArrayList<>();
-        tail.add(mConverter.span(mReading, s.start, end));
-        tail.addAll(mConverter.segment(mReading, end));
+        int prevRid = mFocus > 0 ? mSegments.get(mFocus - 1).chosen().rid : 0;
+        List<Segment> tail = mConverter.segment(mReading, s.start, end, prevRid);
         while (mSegments.size() > mFocus) mSegments.remove(mSegments.size() - 1);
         mSegments.addAll(tail);
         return true;

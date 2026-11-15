@@ -46,7 +46,7 @@ public final class HardwareKeyboard implements HardwareKeyHook {
             public void run() {
                 try {
                     UserDictionary user = new UserDictionary(new File(TermuxConstants.TERMUX_HOME_DIR_PATH + "/.phone-linux/user-dict.tsv"));
-                    mComposition.setConverter(new KanaKanjiConverter(SkkDictionary.fromAsset(context), user));
+                    mComposition.setConverter(new KanaKanjiConverter(MozcDictionary.fromAsset(context), user));
                 } catch (Throwable t) {
                     // no dictionary: conversion stays off
                     Logger.logStackTraceWithMessage("PhoneLinuxKeys", "Failed to load the kana-kanji dictionary", t);

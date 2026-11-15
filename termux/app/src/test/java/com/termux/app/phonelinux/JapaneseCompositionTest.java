@@ -10,9 +10,7 @@ import android.view.KeyEvent;
 import org.junit.Before;
 import org.junit.Test;
 
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class JapaneseCompositionTest {
 
@@ -25,20 +23,9 @@ public class JapaneseCompositionTest {
         }
     };
 
-    private static final KanaDictionary DICT = new KanaDictionary() {
-        @Override
-        public List<String> lookup(String key) {
-            switch (key) {
-                case "わたし": return new ArrayList<>(Arrays.asList("私", "渡し"));
-                case "かk": return new ArrayList<>(Arrays.asList("書"));
-                default: return new ArrayList<>();
-            }
-        }
-    };
-
     @Before
     public void setUp() {
-        mComp.setConverter(new KanaKanjiConverter(DICT, new UserDictionary(null)));
+        mComp.setConverter(new KanaKanjiConverter(new FixtureDictionary(), new UserDictionary(null)));
     }
 
     private boolean key(int keyCode) {

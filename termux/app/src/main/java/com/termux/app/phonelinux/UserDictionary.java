@@ -15,8 +15,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-/** Candidates the user picked before, kept in `reading TAB cand/cand` lines, newest reading last. */
-public final class UserDictionary implements KanaDictionary {
+/** Surfaces the user picked before, kept in `reading TAB cand/cand` lines, newest reading last. */
+public final class UserDictionary {
 
     static final int MAX_READINGS = 2000;
     private static final int MAX_CANDIDATES = 12;
@@ -41,7 +41,6 @@ public final class UserDictionary implements KanaDictionary {
         trim();
     }
 
-    @Override
     public synchronized List<String> lookup(String key) {
         List<String> c = mMap.get(key);
         return c == null ? new ArrayList<String>() : new ArrayList<>(c);
