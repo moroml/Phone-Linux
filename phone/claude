@@ -1,0 +1,5 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# Termux から Ubuntu(proot) の中の Claude Code を起動する入口。
+# 今いるフォルダを /mnt/cwd として見せ、そこを作業場所にする。/sdcard は proot-distro が標準で見せる。
+exec proot-distro login ubuntu --shared-tmp --bind "$PWD:/mnt/cwd" --work-dir /mnt/cwd -- \
+  env PATH=/root/.local/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin /root/.local/bin/claude "$@"

@@ -1,0 +1,4 @@
+# スマホ側の bash で動くので、Windows でチェックアウトしても LF のままにする
+phone/** text eol=lf
+*.py text eol=lf
+*.md text eol=lf
