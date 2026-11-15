@@ -235,4 +235,13 @@
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 
+    <string name="phone_linux_remote_control">Remote Control</string>
+    <string name="phone_linux_update_title">自動更新</string>
+    <string name="phone_linux_update_enabled">毎日、充電中のWi-Fi接続時に自動で更新する</string>
+    <string name="phone_linux_update_now">今すぐ更新</string>
+    <string name="phone_linux_update_started">更新を開始しました</string>
+    <string name="phone_linux_update_last">前回の実行: %1$s</string>
+    <string name="phone_linux_update_never">未実行</string>
+    <string name="phone_linux_update_failed">自動更新に失敗しました</string>
+    <string name="phone_linux_update_failed_hint">設定の「自動更新」で詳細を確認してください</string>
 </resources>

@@ -193,6 +193,27 @@
             android:exported="false" />
 
 
+        <activity
+            android:name=".app.phonelinux.RemoteControlActivity"
+            android:exported="true"
+            android:excludeFromRecents="true"
+            android:theme="@android:style/Theme.NoDisplay" />
+
+        <activity
+            android:name=".app.phonelinux.PhoneLinuxUpdateSettingsActivity"
+            android:exported="false"
+            android:label="@string/phone_linux_update_title"
+            android:theme="@style/Theme.TermuxApp.DayNight.DarkActionBar" />
+
+        <service
+            android:name=".app.phonelinux.PhoneLinuxUpdateJob"
+            android:exported="false"
+            android:permission="android.permission.BIND_JOB_SERVICE" />
+
+        <receiver
+            android:name=".app.phonelinux.PhoneLinuxUpdateResultReceiver"
+            android:exported="false" />
+
         <service
             android:name=".app.TermuxService"
             android:exported="false" />
