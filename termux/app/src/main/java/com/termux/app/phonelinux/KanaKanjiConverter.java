@@ -175,7 +175,7 @@ public final class KanaKanjiConverter {
             }
             int lid = like != null ? like.lid : base.isEmpty() ? unknownId : base.get(0).lid;
             int rid = like != null ? like.rid : base.isEmpty() ? unknownId : base.get(0).rid;
-            out.add(new Word(s, lid, rid, min - LEARNED_BONUS - k));
+            out.add(new Word(s, lid, rid, min - LEARNED_BONUS + k)); // most recent (k = 0) is cheapest
         }
         for (Word w : base) if (!learned.contains(w.surface)) out.add(w);
         return out;

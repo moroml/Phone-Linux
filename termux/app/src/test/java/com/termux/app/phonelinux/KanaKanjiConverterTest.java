@@ -153,6 +153,14 @@ public class KanaKanjiConverterTest {
     }
 
     @Test
+    public void mostRecentlyLearnedChoiceWins() {
+        UserDictionary user = new UserDictionary(null);
+        user.promote("がくせい", "学制");
+        user.promote("がくせい", "楽聖");
+        assertEquals("楽聖", converter(user).convert("がくせい").text());
+    }
+
+    @Test
     public void growingASegmentPastTheReadingLimitKeepsAllText() {
         StringBuilder ks = new StringBuilder();
         for (int i = 0; i < KanaKanjiConverter.MAX_READING; i++) ks.append('ぬ');
