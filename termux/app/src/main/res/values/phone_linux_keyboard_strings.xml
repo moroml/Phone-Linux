@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="phone_linux_insert_image_stub">画像の挿入はまだ実装されていません</string>
+
+    <string name="phone_linux_kb_title">キーボード設定</string>
+    <string name="phone_linux_kb_layout">物理キーボードの配列</string>
+    <string name="phone_linux_kb_layout_jis">JIS(日本語109)</string>
+    <string name="phone_linux_kb_layout_us">US</string>
+    <string name="phone_linux_kb_jp_switch">半角/全角キーで日本語入力に切り替える(カーソルが緑のとき日本語)</string>
+    <string name="phone_linux_kb_shortcuts">ショートカット(例: ctrl+shift+c / 空欄で無効)</string>
+    <string name="phone_linux_kb_save">保存</string>
+    <string name="phone_linux_kb_saved">保存しました</string>
+    <string name="phone_linux_kb_save_failed">保存に失敗しました</string>
+    <string name="phone_linux_kb_invalid">書式が正しくありません: %1$s</string>
+
+    <string name="phone_linux_kb_action_copy">コピー</string>
+    <string name="phone_linux_kb_action_paste">貼り付け</string>
+    <string name="phone_linux_kb_action_new_session">新しいセッション</string>
+    <string name="phone_linux_kb_action_next_session">次のセッション</string>
+    <string name="phone_linux_kb_action_prev_session">前のセッション</string>
+    <string name="phone_linux_kb_action_font_up">文字を大きく</string>
+    <string name="phone_linux_kb_action_font_down">文字を小さく</string>
+    <string name="phone_linux_kb_action_insert_image">画像を挿入</string>
+</resources>

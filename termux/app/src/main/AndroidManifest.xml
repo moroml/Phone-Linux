@@ -108,6 +108,12 @@
             android:documentLaunchMode="intoExisting" />
 
         <activity
+            android:name=".app.phonelinux.PhoneLinuxKeyboardSettingsActivity"
+            android:exported="false"
+            android:label="@string/phone_linux_kb_title"
+            android:theme="@style/Theme.TermuxApp.DayNight.DarkActionBar" />
+
+        <activity
             android:name=".app.api.file.FileReceiverActivity"
             android:excludeFromRecents="true"
             android:exported="false"
