@@ -4,11 +4,14 @@ import android.view.KeyCharacterMap;
 import android.view.KeyEvent;
 
 import com.termux.app.TermuxActivity;
+import com.termux.shared.termux.TermuxConstants;
 import com.termux.terminal.TerminalSession;
 import com.termux.view.HardwareKeyHook;
 import com.termux.view.TerminalView;
 
+import java.io.File;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -21,7 +24,7 @@ public final class HardwareKeyboard implements HardwareKeyHook {
 
     private final TermuxActivity mActivity;
     private final ToggleKeyDebouncer mToggle = new ToggleKeyDebouncer();
-    private final RomajiComposer mComposer = new RomajiComposer();
+    private final JapaneseComposition mComposition = new JapaneseComposition();
     /** Keys whose down event was consumed; their repeats are consumed too and the up must not leak. */
     private final Set<Integer> mConsumed = new HashSet<>();
     /** Keys passed to the terminal directly (bypassing the IME); their up goes the same way. */
@@ -32,18 +35,49 @@ public final class HardwareKeyboard implements HardwareKeyHook {
     public HardwareKeyboard(TermuxActivity activity) {
         mActivity = activity;
         reload();
+        loadDictionary(activity.getApplicationContext());
+    }
+
+    /** Opens the dictionary off the UI thread; until it is ready Space/Enter commit plain hiragana. */
+    private void loadDictionary(final android.content.Context context) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    UserDictionary user = new UserDictionary(new File(TermuxConstants.TERMUX_HOME_DIR_PATH + "/.phone-linux/user-dict.tsv"));
+                    mComposition.setConverter(new KanaKanjiConverter(SkkDictionary.fromAsset(context), user));
+                } catch (Throwable ignored) {
+                    // no dictionary: conversion stays off
+                }
+            }
+        }, "phone-linux-dict").start();
     }
 
     /** Re-reads keys.json (called when the activity resumes, e.g. after editing the settings). */
     public void reload() {
         mConfig = KeysStore.load();
         if (!mConfig.jpModeSwitch) mJapanese = false;
-        mComposer.cancel();
+        mComposition.cancel();
     }
 
     @Override
     public String getPreedit() {
-        return mComposer.isEmpty() ? null : mComposer.preedit();
+        return mComposition.preedit();
+    }
+
+    @Override
+    public int[] getPreeditFocus() {
+        return mComposition.focus();
+    }
+
+    @Override
+    public List<String> getCandidates() {
+        return mComposition.candidates();
+    }
+
+    @Override
+    public int getCandidateIndex() {
+        return mComposition.candidateIndex();
     }
 
     @Override
@@ -102,7 +136,7 @@ public final class HardwareKeyboard implements HardwareKeyHook {
         }
 
         boolean bypass = ctrl || alt || e.isMetaPressed();
-        if (mJapanese && !bypass && compose(view, keyCode, ch)) return true;
+        if (mJapanese && !bypass && compose(view, keyCode, ch, shift)) return true;
         // Any other key ends a composition in progress: commit it, then let the key through.
         commit(view);
 
@@ -124,30 +158,21 @@ public final class HardwareKeyboard implements HardwareKeyHook {
         return !(keyCode >= KeyEvent.KEYCODE_0 && keyCode <= KeyEvent.KEYCODE_9 && !shift);
     }
 
-    private boolean compose(TerminalView view, int keyCode, int ch) {
-        boolean empty = mComposer.isEmpty();
-        switch (keyCode) {
-            case KeyEvent.KEYCODE_ENTER:
-            case KeyEvent.KEYCODE_NUMPAD_ENTER:
-            case KeyEvent.KEYCODE_SPACE:
-                if (empty) return false;
-                commit(view);
-                return true;
-            case KeyEvent.KEYCODE_DEL:
-                return !empty && mComposer.backspace();
-            case KeyEvent.KEYCODE_ESCAPE:
-                if (empty) return false;
-                mComposer.cancel();
-                return true;
-            default:
-                return ch > 0 && mComposer.feed((char) ch);
-        }
+    private boolean compose(TerminalView view, int keyCode, int ch, boolean shift) {
+        return mComposition.onKey(keyCode, ch, shift, output(view));
+    }
+
+    private static JapaneseComposition.Output output(TerminalView view) {
+        final TerminalSession session = view.getCurrentSession();
+        return new JapaneseComposition.Output() {
+            @Override
+            public void write(String text) {
+                if (session != null) session.write(text);
+            }
+        };
     }
 
     private void commit(TerminalView view) {
-        if (mComposer.isEmpty()) return;
-        String text = mComposer.commit();
-        TerminalSession session = view.getCurrentSession();
-        if (session != null && !text.isEmpty()) session.write(text);
+        mComposition.commit(output(view));
     }
 }

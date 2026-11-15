@@ -1049,7 +1049,10 @@ public final class TerminalView extends View {
 
     private Paint mPreeditPaint;
 
-    /** Draws the hardware keyboard's uncommitted text over the cursor row, plus a caret in the cursor colour. */
+    /**
+     * Draws the hardware keyboard's uncommitted text over the cursor row. While converting, the focused
+     * segment is inverted and the candidate page is listed on the row below (above on the last row).
+     */
     private void drawPreedit(Canvas canvas) {
         String preedit = mHardwareKeyHook == null ? null : mHardwareKeyHook.getPreedit();
         if (preedit == null || preedit.isEmpty()) return;
@@ -1063,16 +1066,66 @@ public final class TerminalView extends View {
         float baseline = getPointY(mEmulator.getCursorRow()) + mRenderer.mFontLineSpacing;
         float top = baseline - mRenderer.mFontLineSpacing + mRenderer.mFontLineSpacingAndAscent;
         float bottom = top + mRenderer.mFontLineSpacing;
+        int[] focus = mHardwareKeyHook.getPreeditFocus();
+        if (focus != null && (focus[0] < 0 || focus[1] > preedit.length() || focus[0] >= focus[1])) focus = null;
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xF0202830);
         canvas.drawRect(x, top, x + w + mRenderer.mFontWidth, bottom, p);
         p.setColor(0xFFFFFFFF);
         canvas.drawText(preedit, x, baseline, p);
         p.setStrokeWidth(Math.max(2f, mRenderer.mTextSize / 12f));
-        canvas.drawLine(x, bottom - 2, x + w, bottom - 2, p);
-        int caret = mHardwareKeyHook.getCursorColor();
-        p.setColor(caret != 0 ? caret : 0xFFFFFFFF);
-        canvas.drawRect(x + w, top, x + w + mRenderer.mFontWidth / 3f, bottom, p);
+        float fx0 = x, fx1 = x;
+        if (focus != null) {
+            fx0 = x + p.measureText(preedit, 0, focus[0]);
+            fx1 = x + p.measureText(preedit, 0, focus[1]);
+            p.setColor(0xFFE8E8E8);
+            canvas.drawRect(fx0, top, fx1, bottom, p);
+            p.setColor(0xFF202830);
+            canvas.drawText(preedit, focus[0], focus[1], fx0, baseline, p);
+            p.setColor(0xFFFFFFFF);
+            canvas.drawLine(x, bottom - 2, fx0, bottom - 2, p);
+            canvas.drawLine(fx1, bottom - 2, x + w, bottom - 2, p);
+        } else {
+            canvas.drawLine(x, bottom - 2, x + w, bottom - 2, p);
+            int caret = mHardwareKeyHook.getCursorColor();
+            p.setColor(caret != 0 ? caret : 0xFFFFFFFF);
+            canvas.drawRect(x + w, top, x + w + mRenderer.mFontWidth / 3f, bottom, p);
+        }
+        java.util.List<String> candidates = mHardwareKeyHook.getCandidates();
+        if (focus != null && candidates != null && !candidates.isEmpty()) {
+            drawCandidates(canvas, p, candidates, mHardwareKeyHook.getCandidateIndex(), fx0, top, bottom, baseline - top);
+        }
+    }
+
+    /** Opaque box listing "1 foo  2 bar ..." with the chosen one inverted. */
+    private void drawCandidates(Canvas canvas, Paint p, java.util.List<String> candidates, int chosen,
+                                float anchorX, float rowTop, float rowBottom, float baselineOffset) {
+        float height = mRenderer.mFontLineSpacing;
+        float gap = mRenderer.mFontWidth;
+        float[] widths = new float[candidates.size()];
+        String[] labels = new String[candidates.size()];
+        float total = gap;
+        for (int i = 0; i < labels.length; i++) {
+            labels[i] = (i + 1) + " " + candidates.get(i);
+            widths[i] = p.measureText(labels[i]);
+            total += widths[i] + gap;
+        }
+        float left = Math.max(0, Math.min(anchorX, getWidth() - total));
+        boolean above = rowBottom + height > getHeight();
+        float top = above ? rowTop - height : rowBottom;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xFF202830);
+        canvas.drawRect(left, top, left + total, top + height, p);
+        float cx = left + gap;
+        for (int i = 0; i < labels.length; i++) {
+            if (i == chosen) {
+                p.setColor(0xFFE8E8E8);
+                canvas.drawRect(cx - gap / 2, top, cx + widths[i] + gap / 2, top + height, p);
+            }
+            p.setColor(i == chosen ? 0xFF202830 : 0xFFFFFFFF);
+            canvas.drawText(labels[i], cx, top + baselineOffset, p);
+            cx += widths[i] + gap;
+        }
     }
 
     public TerminalSession getCurrentSession() {
