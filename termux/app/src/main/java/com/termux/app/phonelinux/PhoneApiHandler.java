@@ -211,13 +211,13 @@ public final class PhoneApiHandler {
                     return new Response(200, "application/json; charset=utf-8", actions.uiTree().getBytes(StandardCharsets.UTF_8));
                 }
             case "/v1/tap": {
-                int x = num(body, "x"), y = num(body, "y");
+                int x = coord(body, "x"), y = coord(body, "y");
                 detail[0] = "x=" + x + " y=" + y;
                 return act(key, PhoneApiKeys.SCOPE_ACT, "タップ (" + x + ", " + y + ")", () -> actions.tap(x, y));
             }
             case "/v1/swipe": {
-                int x1 = num(body, "x1"), y1 = num(body, "y1"), x2 = num(body, "x2"), y2 = num(body, "y2");
-                int ms = body.has("ms") ? Math.max(1, Math.min(10_000, num(body, "ms"))) : 300;
+                int x1 = coord(body, "x1"), y1 = coord(body, "y1"), x2 = coord(body, "x2"), y2 = coord(body, "y2");
+                int ms = body.has("ms") ? num(body, "ms", 1, 10_000) : 300;
                 detail[0] = "x1=" + x1 + " y1=" + y1 + " x2=" + x2 + " y2=" + y2 + " ms=" + ms;
                 return act(key, PhoneApiKeys.SCOPE_ACT, "スワイプ (" + x1 + ", " + y1 + ") → (" + x2 + ", " + y2 + ")", () -> actions.swipe(x1, y1, x2, y2, ms));
             }
@@ -272,10 +272,18 @@ public final class PhoneApiHandler {
         return false;
     }
 
-    private static int num(JSONObject o, String name) {
+    private static int coord(JSONObject o, String name) {
+        return num(o, name, 0, 100_000);
+    }
+
+    /** An integral JSON number within [min, max]; anything else is a 400 instead of being truncated. */
+    private static int num(JSONObject o, String name, int min, int max) {
         Object v = o.opt(name);
         if (!(v instanceof Number)) throw new BadArg(name + " must be a number");
-        return ((Number) v).intValue();
+        double d = ((Number) v).doubleValue();
+        if (d != Math.rint(d) || Double.isInfinite(d)) throw new BadArg(name + " must be an integer");
+        if (d < min || d > max) throw new BadArg(name + " must be between " + min + " and " + max);
+        return (int) d;
     }
 
     private Response done(PhoneApiKeys.Key key, Request req, Response r, String detail) {

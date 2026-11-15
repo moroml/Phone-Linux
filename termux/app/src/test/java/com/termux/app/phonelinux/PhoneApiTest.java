@@ -221,7 +221,7 @@ public class PhoneApiTest {
         String all = issue("read,act,open", 0, false).token;
         assertEquals(200, call("POST", "/v1/tap", all, "{\"x\":10,\"y\":20}").status);
         assertEquals(200, call("POST", "/v1/swipe", all, "{\"x1\":1,\"y1\":2,\"x2\":3,\"y2\":4}").status);
-        assertEquals(200, call("POST", "/v1/swipe", all, "{\"x1\":1,\"y1\":2,\"x2\":3,\"y2\":4,\"ms\":99999}").status);
+        assertEquals(200, call("POST", "/v1/swipe", all, "{\"x1\":1,\"y1\":2,\"x2\":3,\"y2\":4,\"ms\":10000}").status);
         assertEquals(200, call("POST", "/v1/type", all, "{\"text\":\"hi\",\"append\":true}").status);
         assertEquals(200, call("POST", "/v1/open", all, "{\"package\":\"com.x\"}").status);
         assertEquals("[tap 10,20, swipe 1,2,3,4,300, swipe 1,2,3,4,10000, type hi true, open com.x null]", calls.toString());
@@ -233,6 +233,12 @@ public class PhoneApiTest {
         assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":1}").status);
         assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":\"1\",\"y\":2}").status);
         assertEquals(400, call("POST", "/v1/tap", all, "not json").status);
+        assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":1.5,\"y\":2}").status);
+        assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":4294967297,\"y\":2}").status);
+        assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":1e30,\"y\":2}").status);
+        assertEquals(400, call("POST", "/v1/tap", all, "{\"x\":-1,\"y\":2}").status);
+        assertEquals(400, call("POST", "/v1/swipe", all, "{\"x1\":1,\"y1\":2,\"x2\":3,\"y2\":4,\"ms\":99999}").status);
+        assertEquals(400, call("POST", "/v1/swipe", all, "{\"x1\":1,\"y1\":2,\"x2\":3,\"y2\":4,\"ms\":0}").status);
         assertEquals(400, call("POST", "/v1/key", all, "{\"name\":\"power\"}").status);
         assertEquals(400, call("POST", "/v1/type", all, "{}").status);
         assertEquals(400, call("POST", "/v1/open", all, "{}").status);
