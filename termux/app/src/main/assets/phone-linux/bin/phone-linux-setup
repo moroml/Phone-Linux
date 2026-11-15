@@ -2,10 +2,10 @@
 # phone-linux: first-run setup for Claude Code. Safe to run again.
 set -euo pipefail
 # Keep existing config files without asking (piping `yes` here would trip pipefail via SIGPIPE).
-APT_OPTS=(-y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
+APT_OPTS=(-y --no-install-recommends -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold)
 pkg upgrade "${APT_OPTS[@]}"
 pkg install "${APT_OPTS[@]}" glibc-repo
-pkg install "${APT_OPTS[@]}" glibc-runner git ripgrep python jq curl
+pkg install "${APT_OPTS[@]}" glibc-runner git openssh ripgrep python jq curl
 claude-update
 mkdir -p "$HOME/.phone-linux"
 touch "$HOME/.phone-linux/setup-done"
