@@ -52,6 +52,19 @@ Termux は Linux を「起動」しているのではなく、Android のカー�
 - proot（ファイルを開くたびに割り込む）が無いので、ファイル作業は約10倍速い（1500 ファイルの git 作業で 0.32 秒 対 3.27 秒）。
 - 手順とつまずきは kb `recipes/20261115-termux-claude-code-proot-glibc`。
 
+## アプリに足した部品（段階1〜4）
+
+Termux 本体には最小限のフックだけを入れ、追加分は `termux/app/src/main/java/com/termux/app/phonelinux/` にまとめている。
+
+| 部品 | 中身 | Termux へのフック |
+|---|---|---|
+| 同梱スクリプト | `assets/phone-linux/` を起動のたびに `$PREFIX` へ配置（`# phone-linux:` の印が無い同名ファイルは残す） | `TermuxActivity`（起動時） |
+| 入力 | 半角/全角のデバウンス、ローマ字→かな、JIS/US 読み替え、ショートカット（`~/.phone-linux/keys.json`） | `TerminalView.onKeyPreIme`（IME より前に物理キーを処理）、`TerminalRenderer`（カーソル色） |
+| 見た目 | 背景はウィンドウ背景に描く（端末は既定色のセルを塗らないので透ける）、配色は `~/.termux/colors.properties`、フォントは `~/.termux/font.ttf` | `TermuxTerminalSessionActivityClient`（背景）、エクストラキー既定を非表示 |
+| 画像 | `~/inbox/` に排他的に保存し、パスを入力欄へ書き込む | `TermuxActivity`（長押しメニュー・結果受け取り）、`FileReceiverActivity`（共有） |
+| スマホ操作 | ユーザー補助サービス＋HTTP API（`$PREFIX/var/run/phone-linux/phone-api.sock` の Unix ソケット、相手の uid も確認）、鍵は SHA-256 で保存、`phone-mcp` が Claude の道具になる | マニフェストのみ |
+| 連携 | `claude-rc`（スリープ防止つき Remote Control）、毎日の自動更新ジョブ（Termux のバックグラウンド実行を使う） | ドロワーのボタン、ランチャーのショートカット |
+
 ## 自作アプリで Galaxy の設定を触らずに済ませるために
 
 上のつまずきの多くは「Galaxy 本体のキーボード設定」に原因がある。アプリの中で次を持てば、本体の設定を変えずに済む。
