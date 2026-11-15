@@ -2,3 +2,4 @@
 phone/** text eol=lf
 *.py text eol=lf
 *.md text eol=lf
+termux/app/src/main/assets/phone-linux/** text eol=lf
