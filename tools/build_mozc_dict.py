@@ -68,13 +68,17 @@ def load_entries(src, max_reading):
                 if len(p) != 5:  # extra column marks e.g. SPELLING_CORRECTION entries
                     continue
                 reading, lid, rid, cost, surface = p
-                if len(reading) > max_reading or not surface or len(surface) > MAX_SURFACE:
+                if u16len(reading) > max_reading or not surface or u16len(surface) > MAX_SURFACE:
                     continue
                 k = (reading, surface, int(lid), int(rid))
                 c = int(cost)
                 if k not in best or c < best[k]:
                     best[k] = c
     return best
+
+
+def u16len(s):
+    return len(s.encode("utf-16-le")) // 2
 
 
 def katakana(s):
@@ -92,12 +96,14 @@ def build_dict(best, keep, unknown_id, max_cost):
     for i, r in enumerate(readings):
         es = sorted(by_reading[r])[:keep]
         kept += len(es)
+        # Lengths are UTF-16 code units, as Java reads them (a non-BMP character counts as 2).
+        ru = r.encode("utf-16-le")
         shared = 0
         if i % BLOCK:  # front coding against the previous reading, restarted at every block
-            prev = readings[i - 1]
-            while shared < min(len(prev), len(r)) and prev[shared] == r[shared]:
+            pu = readings[i - 1].encode("utf-16-le")
+            while 2 * shared < min(len(pu), len(ru)) and pu[2 * shared:2 * shared + 2] == ru[2 * shared:2 * shared + 2]:
                 shared += 1
-        b = bytearray([shared, len(r) - shared]) + r[shared:].encode("utf-16-le") + bytes([len(es)])
+        b = bytearray([shared, len(ru) // 2 - shared]) + ru[2 * shared:] + bytes([len(es)])
         for cost, surface, lid, rid in es:
             kind = 1 if surface == r else 2 if surface == katakana(r) else 0
             assert lid < 8192
@@ -105,7 +111,8 @@ def build_dict(best, keep, unknown_id, max_cost):
             if rid != lid:
                 b += struct.pack("<H", rid)
             if kind == 0:
-                b += bytes([len(surface)]) + surface.encode("utf-16-le")
+                su = surface.encode("utf-16-le")
+                b += bytes([len(su) // 2]) + su
         records.append(bytes(b))
     nblocks = (len(readings) + BLOCK - 1) // BLOCK
     out = bytearray(b"PLMD" + struct.pack("<IIIII", 1, len(readings), unknown_id, BLOCK, COST_STEP) + bytes(8))
