@@ -1059,13 +1059,15 @@ public final class TerminalView extends View {
         p.setTextSize(mRenderer.mTextSize);
         float w = p.measureText(preedit);
         float x = Math.min(getPointX(mEmulator.getCursorCol()), Math.max(0, getWidth() - w - mRenderer.mFontWidth));
-        float top = getPointY(mEmulator.getCursorRow());
+        // Same geometry as TerminalRenderer: baseline at (row + 1) * spacing, cell top = baseline + ascent.
+        float baseline = getPointY(mEmulator.getCursorRow()) + mRenderer.mFontLineSpacing;
+        float top = baseline - mRenderer.mFontLineSpacing + mRenderer.mFontLineSpacingAndAscent;
         float bottom = top + mRenderer.mFontLineSpacing;
         p.setStyle(Paint.Style.FILL);
         p.setColor(0xF0202830);
         canvas.drawRect(x, top, x + w + mRenderer.mFontWidth, bottom, p);
         p.setColor(0xFFFFFFFF);
-        canvas.drawText(preedit, x, top + mRenderer.mFontLineSpacingAndAscent, p);
+        canvas.drawText(preedit, x, baseline, p);
         p.setStrokeWidth(Math.max(2f, mRenderer.mTextSize / 12f));
         canvas.drawLine(x, bottom - 2, x + w, bottom - 2, p);
         int caret = mHardwareKeyHook.getCursorColor();
