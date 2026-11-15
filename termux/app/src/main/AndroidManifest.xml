@@ -103,6 +103,11 @@
             android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar" />
 
         <activity
+            android:name=".app.phonelinux.PhoneLinuxSettingsActivity"
+            android:exported="false"
+            android:label="@string/phone_linux_settings_title"
+            android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar" />
+        <activity
             android:name=".app.phonelinux.PhoneLinuxAppearanceSettingsActivity"
             android:exported="false"
             android:label="@string/phone_linux_appearance_title"

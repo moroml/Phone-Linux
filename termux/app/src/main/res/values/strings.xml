@@ -240,6 +240,12 @@
     <string name="phone_linux_no_clipboard_image">コピーした画像がありません</string>
     <string name="phone_linux_image_failed">画像を取り込めません: %1$s</string>
 
+    <!-- Phone-Linux settings hub -->
+    <string name="phone_linux_settings_title">Phone-Linux の設定</string>
+    <string name="phone_linux_settings_keyboard">キーボード（日本語・配列・ショートカット）</string>
+    <string name="phone_linux_settings_phone">スマホ操作と API の鍵</string>
+    <string name="phone_linux_settings_termux">Termux の詳細設定</string>
+
     <!-- Phone-Linux appearance -->
     <string name="phone_linux_appearance_title">外観</string>
     <string name="phone_linux_appearance_toolbar">画面下のキー列(エクストラキー)を表示</string>
