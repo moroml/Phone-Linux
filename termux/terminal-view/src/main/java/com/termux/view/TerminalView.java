@@ -1041,6 +1041,7 @@ public final class TerminalView extends View {
             mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
 
             drawPreedit(canvas);
+            drawJapaneseBadge(canvas);
 
             // render the text selection handles
             renderTextSelection();
@@ -1048,6 +1049,26 @@ public final class TerminalView extends View {
     }
 
     private Paint mPreeditPaint;
+
+    /** Small "あ" badge in the top-right corner while JP mode is on: visible even when a TUI hides the cursor. */
+    private void drawJapaneseBadge(Canvas canvas) {
+        if (mHardwareKeyHook == null || !mHardwareKeyHook.isJapaneseMode()) return;
+        if (mPreeditPaint == null) mPreeditPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint p = mPreeditPaint;
+        float inset = 4 * getResources().getDisplayMetrics().density;
+        p.setTypeface(mRenderer.mTypeface);
+        p.setTextSize(mRenderer.mTextSize * 0.9f);
+        p.setStyle(Paint.Style.FILL);
+        float textW = p.measureText("あ");
+        float padX = mRenderer.mFontWidth * 0.4f, padY = mRenderer.mFontLineSpacing * 0.1f;
+        float h = mRenderer.mFontLineSpacing * 0.9f + 2 * padY;
+        float right = getWidth() - inset, left = right - textW - 2 * padX, top = inset;
+        p.setColor(0xFF00C853);
+        canvas.drawRoundRect(left, top, right, top + h, h / 4, h / 4, p);
+        p.setColor(0xFF10261A);
+        Paint.FontMetrics fm = p.getFontMetrics();
+        canvas.drawText("あ", left + padX, top + (h - (fm.descent - fm.ascent)) / 2 - fm.ascent, p);
+    }
 
     /**
      * Draws the hardware keyboard's uncommitted text over the cursor row. While converting, the focused

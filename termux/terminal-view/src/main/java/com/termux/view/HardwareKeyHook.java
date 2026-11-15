@@ -25,6 +25,9 @@ public interface HardwareKeyHook {
     /** Index of the chosen candidate within {@link #getCandidates()}. */
     int getCandidateIndex();
 
+    /** True while the Japanese input mode is on (drives the corner badge). */
+    boolean isJapaneseMode();
+
     /** ARGB cursor colour overriding the terminal's own, or 0 for none. */
     int getCursorColor();
 }

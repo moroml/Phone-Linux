@@ -81,6 +81,11 @@ public final class HardwareKeyboard implements HardwareKeyHook {
     }
 
     @Override
+    public boolean isJapaneseMode() {
+        return mJapanese;
+    }
+
+    @Override
     public int getCursorColor() {
         return mJapanese ? JP_CURSOR_COLOR : 0;
     }
