@@ -28,16 +28,19 @@ public class KanaKanjiConverterTest {
     public void segmentsSentence() {
         Conversion c = converter().convert("わたしはがくせい");
         assertEquals("私は学生", c.text());
-        assertEquals(3, c.segmentCount());
+        assertEquals(2, c.segmentCount()); // [私は][学生]
+        assertEquals("わたしは", c.focusReading());
     }
 
     @Test
     public void particlesStayKana() {
-        // は has dictionary words (葉, 歯) but the kana itself comes first
+        // は has dictionary words (葉, 歯) but the particle stays attached to its bunsetsu in kana
         Conversion c = converter().convert("きょうはてんき");
         assertEquals("今日は天気", c.text());
-        c.moveFocus(1);
-        assertEquals(Arrays.asList("は", "葉", "歯", "ハ"), c.pageCandidates());
+        assertEquals(2, c.segmentCount());
+        assertEquals("今日は", c.pageCandidates().get(0));
+        c.prev(); // wraps to the last candidate: katakana of the whole bunsetsu
+        assertEquals("キョウハ天気", c.text());
     }
 
     @Test
@@ -58,34 +61,42 @@ public class KanaKanjiConverterTest {
         assertEquals(Arrays.asList("書く", "欠く", "かく", "カク"), c.pageCandidates());
         Conversion k = converter().convert("かった");
         assertEquals("買った", k.text());
-        assertEquals(2, k.segmentCount());
+        assertEquals(1, k.segmentCount()); // 買っ + た are one bunsetsu
+        assertEquals("買った", k.pageCandidates().get(0));
+        assertEquals("勝った", k.pageCandidates().get(1));
     }
 
     @Test
     public void connectionCostBreaksTies() {
-        // 橋 is cheaper as a word, but 箸 connects better after ご飯
+        // 橋 is cheaper as a word, but 箸 connects better after ご飯 (one noun-compound bunsetsu)
         Conversion c = converter().convert("ごはんはし");
         assertEquals("ご飯箸", c.text());
-        c.moveFocus(1);
-        assertEquals(Arrays.asList("箸", "橋", "はし", "ハシ"), c.pageCandidates());
+        assertEquals(1, c.segmentCount());
+        assertTrue(c.pageCandidates().contains("ご飯橋"));
         assertEquals("橋", converter().convert("はし").text());
+        // the left context of a bunsetsu decides its ranking: after ご飯 (a separate bunsetsu) 箸 leads
+        assertTrue(c.resize(-2));
+        assertEquals("ごはん", c.focusReading());
+        c.moveFocus(1);
+        assertEquals(Arrays.asList("箸", "橋", "はし"), c.pageCandidates().subList(0, 3));
     }
 
     @Test
     public void functionWordsStayKana() {
-        // です beats で + 巣 on connection cost
+        // です beats で + 巣 on connection cost, and it stays inside the bunsetsu
         Conversion c = converter().convert("がくせいです");
         assertEquals("学生です", c.text());
-        c.moveFocus(1);
-        assertEquals(Arrays.asList("です", "デス"), c.pageCandidates());
+        assertEquals(1, c.segmentCount());
+        assertEquals(Arrays.asList("学生です", "学制です"), c.pageCandidates().subList(0, 2));
+        assertTrue(c.pageCandidates().contains("学生で巣") || c.pageCandidates().size() == Conversion.PAGE);
     }
 
     @Test
     public void unknownKanaFallback() {
         Conversion c = converter().convert("ぬぬ");
         assertEquals("ぬぬ", c.text());
-        assertEquals(2, c.segmentCount()); // each unknown kana is its own segment
-        assertEquals(Arrays.asList("ぬ", "ヌ"), c.pageCandidates());
+        assertEquals(1, c.segmentCount()); // a run of unknown kana stays one bunsetsu
+        assertEquals(Arrays.asList("ぬぬ", "ヌヌ"), c.pageCandidates());
     }
 
     @Test
@@ -109,14 +120,35 @@ public class KanaKanjiConverterTest {
 
     @Test
     public void resizeResegmentsRemainder() {
-        Conversion c = converter().convert("わたしがくせい");
-        assertEquals("私学生", c.text());
-        assertTrue(c.resize(-1)); // わた + しがくせい
-        assertEquals("わた", c.focusReading());
-        assertTrue(c.text().startsWith("わた"));
-        assertTrue(c.resize(1)); // back to わたし
-        assertEquals("私学生", c.text());
+        Conversion c = converter().convert("わたしはがくせい");
+        assertEquals("私は学生", c.text());
+        assertTrue(c.resize(-1)); // わたし + は + がくせい
+        assertEquals("わたし", c.focusReading());
+        assertEquals(3, c.segmentCount());
+        assertEquals("私は学生", c.text());
+        assertTrue(c.resize(1)); // back to わたしは
+        assertEquals("わたしは", c.focusReading());
+        assertEquals("私は学生", c.text());
         assertEquals(2, c.segmentCount());
+        assertFalse(c.resize(10));
+    }
+
+    @Test
+    public void compoundNounsAndPrefixesFormOneBunsetsu() {
+        assertEquals(1, converter().convert("きょうてんき").segmentCount());
+        Conversion c = converter().convert("おちゃをかく");
+        assertEquals("お茶を書く", c.text());
+        assertEquals(2, c.segmentCount()); // [お茶を][書く]: the prefix and the particle attach
+        assertEquals("おちゃを", c.focusReading());
+    }
+
+    @Test
+    public void suruAttachesToAPrecedingNoun() {
+        Conversion c = converter().convert("がくせいをへんかんする");
+        assertEquals("学生を変換する", c.text());
+        assertEquals(2, c.segmentCount()); // [学生を][変換する]
+        c.moveFocus(1);
+        assertEquals("へんかんする", c.focusReading());
     }
 
     @Test
@@ -134,6 +166,18 @@ public class KanaKanjiConverterTest {
         k.next();
         k.commit();
         assertEquals("欠く", converter(new UserDictionary(f)).convert("かく").text());
+    }
+
+    @Test
+    public void choosingABunsetsuLearnsItsContentWordsOnly() {
+        UserDictionary user = new UserDictionary(null);
+        Conversion c = converter(user).convert("わたしはがくせい");
+        assertTrue(c.select(2)); // 渡しは
+        assertEquals("渡しは学生", c.commit());
+        assertEquals(Arrays.asList("渡し"), user.lookup("わたし"));
+        assertTrue(user.lookup("は").isEmpty()); // particles are not learned
+        assertTrue(user.lookup("がくせい").isEmpty()); // the untouched bunsetsu is not learned
+        assertEquals("渡しは学生", converter(user).convert("わたしはがくせい").text());
     }
 
     @Test

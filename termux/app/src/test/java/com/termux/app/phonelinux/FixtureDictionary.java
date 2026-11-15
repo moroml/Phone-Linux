@@ -8,7 +8,7 @@ import java.util.Map;
 /** A tiny Mozc-style dictionary with a hand-made POS connection table, for converter tests. */
 final class FixtureDictionary implements KanaDictionary {
 
-    static final int NOUN = 1, PARTICLE = 2, VERB = 3, AUX = 4, PLACE = 5, FOOD = 6;
+    static final int NOUN = 1, PARTICLE = 2, VERB = 3, AUX = 4, PLACE = 5, FOOD = 6, PREFIX = 7, VSURU = 8;
 
     private final Map<String, List<Word>> mWords = new HashMap<>();
 
@@ -36,6 +36,11 @@ final class FixtureDictionary implements KanaDictionary {
         add("ごはん", "ご飯", FOOD, 3000);
         add("はし", "橋", PLACE, 3000);
         add("はし", "箸", FOOD, 3500);
+        add("を", "を", PARTICLE, 500);
+        add("お", "お", PREFIX, 1000);
+        add("ちゃ", "茶", NOUN, 3000);
+        add("へんかん", "変換", NOUN, 3000);
+        add("する", "する", VSURU, 500);
         for (int i = 0; i < 12; i++) add("ぬる", "候補" + i, NOUN, 3000 + i);
     }
 
@@ -55,6 +60,8 @@ final class FixtureDictionary implements KanaDictionary {
     public int connectionCost(int rid, int lid) {
         if (rid == 0) return lid == NOUN || lid == PLACE || lid == FOOD ? 500 : 800; // BOS
         if (lid == 0) return rid == AUX ? 300 : 800; // EOS
+        if (rid == PREFIX && lid == NOUN) return 300;
+        if ((rid == NOUN || rid == PLACE || rid == FOOD) && lid == VSURU) return 500;
         if (rid == FOOD && lid == FOOD) return 300;
         if (rid == FOOD && lid == PLACE) return 4000;
         if ((rid == NOUN || rid == PLACE || rid == FOOD) && (lid == PARTICLE || lid == AUX)) return 500;
@@ -73,6 +80,10 @@ final class FixtureDictionary implements KanaDictionary {
             case PARTICLE:
             case AUX:
                 return ATTACH_PREV;
+            case PREFIX:
+                return ATTACH_NEXT;
+            case VSURU:
+                return KanaDictionary.SURU;
             default:
                 return CONTENT;
         }
