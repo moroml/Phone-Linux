@@ -235,4 +235,23 @@
     <!-- Donate Preference -->
     <string name="donate_preference_title">Donate</string>
 
+
+    <!-- Phone-Linux appearance -->
+    <string name="phone_linux_appearance_title">外観</string>
+    <string name="phone_linux_appearance_toolbar">画面下のキー列(エクストラキー)を表示</string>
+    <string name="phone_linux_appearance_font_size">文字サイズ: %1$d</string>
+    <string name="phone_linux_appearance_font_bundled">日本語対応フォント(UDEV Gothic)を使う</string>
+    <string name="phone_linux_appearance_font_note">オフにすると、同梱フォントを入れていた場合だけ元に戻します。自分で置いた ~/.termux/font.ttf は変更しません。</string>
+    <string name="phone_linux_appearance_preset">配色</string>
+    <string name="phone_linux_appearance_preset_default">標準</string>
+    <string name="phone_linux_appearance_preset_teal">ティール(暗)</string>
+    <string name="phone_linux_appearance_preset_light">ライト</string>
+    <string name="phone_linux_appearance_background">背景</string>
+    <string name="phone_linux_appearance_pick_image">画像を選ぶ</string>
+    <string name="phone_linux_appearance_clear_background">背景を外す</string>
+    <string name="phone_linux_appearance_color_hint">単色(例 #102030)</string>
+    <string name="phone_linux_appearance_use_color">単色にする</string>
+    <string name="phone_linux_appearance_color_invalid">#RRGGBB の形式で入力してください</string>
+    <string name="phone_linux_appearance_dim">背景の暗さ(文字を読みやすくする): %1$d%%</string>
+    <string name="phone_linux_appearance_image_failed">画像を読み込めませんでした</string>
 </resources>
