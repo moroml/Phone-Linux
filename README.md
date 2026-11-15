@@ -1,7 +1,8 @@
 # Phone-Linux
 
 Galaxy 専用の Linux アプリを自作するための土台。目標は、アプリを入れるだけで Linux と Claude Code が使え、Galaxy 側の設定を手で触らなくて済むこと。
-今はその前段として、Termux を使った現行の組み立て方と、作りながら分かったことを置いている。仕組みとつまずいた所は [docs/architecture.md](docs/architecture.md)。
+方針は「Termux を土台に作り込み、Claude Code は proot なしで直接動かす」。計画は [docs/plan.md](docs/plan.md)、仕組みとつまずいた所は [docs/architecture.md](docs/architecture.md)。
+下の手順と `phone/` は、Ubuntu(proot) を使う以前の組み立て方で、予備として残している。
 
 ## 中身
 

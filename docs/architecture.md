@@ -43,6 +43,15 @@ PC (Windows)                                   スマホ (Android)
 | 半角/全角で「゛」が止まらない | Windows の半角/全角は離した合図を出さない。マルチコントロール経由で `KEY_GRAVE` の押しっぱなしとして届き、次に押したとき離す→押すが続けて届く | 自作アプリ側で、この `KEY_GRAVE` を自動連打させず日本語/英語の切替として扱う |
 | `adb input text` が化ける | 日本語 IME が変換してしまう | 英語モードで送るか、`run-as` でファイル経由にする |
 
+## proot を使わない動かし方（2026-11-15 実験で確認）
+
+Termux は Linux を「起動」しているのではなく、Android のカーネルの上で Linux のプログラムを普通のアプリとして直接実行している。
+
+- Android 用（bionic）の道具: `termux-exec` が、起動の瞬間だけ `/bin/sh` などの道を Termux の置き場所へ付け替える。
+- Linux 用（glibc）の Claude Code: `glibc-runner` の `ld-linux-aarch64.so.1` で直接起動する。`termux-exec` は本体から外し、Claude が使うシェルにだけ付け直す。
+- proot（ファイルを開くたびに割り込む）が無いので、ファイル作業は約10倍速い（1500 ファイルの git 作業で 0.32 秒 対 3.27 秒）。
+- 手順とつまずきは kb `recipes/20261115-termux-claude-code-proot-glibc`。
+
 ## 自作アプリで Galaxy の設定を触らずに済ませるために
 
 上のつまずきの多くは「Galaxy 本体のキーボード設定」に原因がある。アプリの中で次を持てば、本体の設定を変えずに済む。
