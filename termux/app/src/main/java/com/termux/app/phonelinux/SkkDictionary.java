@@ -50,7 +50,8 @@ public final class SkkDictionary implements KanaDictionary {
             offsets[n++] = start;
         }
         mOffsets = Arrays.copyOf(offsets, n + 1);
-        mOffsets[n] = data.length + 1; // sentinel: line n would end at data.length
+        // sentinel: where line n would start, so lineEnd(n - 1) excludes the trailing newline
+        mOffsets[n] = data.length > 0 && data[data.length - 1] == 0x0A ? data.length : data.length + 1;
     }
 
     /** Extracts the bundled dictionary once per app install/update, then opens it. */
