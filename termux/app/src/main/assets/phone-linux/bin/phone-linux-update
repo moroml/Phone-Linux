@@ -1,0 +1,27 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: non-interactive package upgrade + Claude Code update; logs to ~/.phone-linux/update.log.
+set -uo pipefail
+dir=$HOME/.phone-linux
+log=$dir/update.log
+mkdir -p "$dir"
+
+# Keep the log under ~200 KB by dropping the oldest lines.
+if [[ $(stat -c %s "$log" 2>/dev/null || echo 0) -gt 200000 ]]; then
+	tail -c 100000 "$log" | tail -n +2 >"$log.tmp" && mv "$log.tmp" "$log"
+fi
+
+stamp() { date '+%Y-%m-%d %H:%M:%S'; }
+echo "[$(stamp)] START" >>"$log"
+export DEBIAN_FRONTEND=noninteractive
+status=0
+{
+	pkg upgrade -y -o Dpkg::Options::=--force-confdef -o Dpkg::Options::=--force-confold </dev/null &&
+		claude-update
+} 2>&1 | while IFS= read -r line; do echo "[$(stamp)] $line"; done >>"$log"
+[[ ${PIPESTATUS[0]} -eq 0 ]] || status=1
+if [[ $status -eq 0 ]]; then
+	echo "[$(stamp)] RESULT ok" >>"$log"
+else
+	echo "[$(stamp)] RESULT failed" >>"$log"
+fi
+exit $status

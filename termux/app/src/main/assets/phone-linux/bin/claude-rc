@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: run Claude Code Remote Control with the screen kept awake. Usage: claude-rc [NAME]
+name=${1:-Galaxy}
+termux-wake-lock
+trap 'termux-wake-unlock' EXIT
+claude remote-control --name "$name"
