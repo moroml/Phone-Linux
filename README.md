@@ -1,4 +1,4 @@
-# phone-claude-setup
+# Phone-Linux
 
 Android スマホ(Termux)で Claude Code を動かし、PC と行き来して使うための土台。
 完成品の自動インストーラではなく、自分で一から組み立てるための部品と手順を置いている。
