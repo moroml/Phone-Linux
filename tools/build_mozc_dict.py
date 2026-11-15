@@ -174,7 +174,7 @@ def build_pos(src):
     for line in open(os.path.join(src, "id.def"), encoding="utf-8"):
         i, name = line.rstrip("\n").split(" ", 1)
         assert int(i) == len(classes)
-        classes.append(0 if name.startswith("BOS/EOS") or name == UNKNOWN_POS else pos_class(name))
+        classes.append(CONTENT if name.startswith("BOS/EOS") else pos_class(name))  # unknown words are flagged by the converter, not by id
     return b"PLMP" + struct.pack("<II", 1, len(classes)) + bytes(8) + bytes(classes), classes
 
 
