@@ -292,6 +292,27 @@ public class PhoneApiTest {
     }
 
     @Test
+    public void keyRevokedOrExpiredWhileConfirmingIsNotUsed() throws Exception {
+        PhoneApiKeys.Issued k = issue("act", now + 5000, true);
+        handler = new PhoneApiHandler(keys, actions, (n, d) -> {
+            try {
+                keys.revoke(k.key.id);
+            } catch (Exception e) {
+                throw new IllegalStateException(e);
+            }
+            return true;
+        }, logs::add, () -> now);
+        assertEquals(401, call("POST", "/v1/tap", k.token, "{\"x\":1,\"y\":2}").status);
+        PhoneApiKeys.Issued k2 = issue("act", now + 5000, true);
+        handler = new PhoneApiHandler(keys, actions, (n, d) -> {
+            now += 5000;
+            return true;
+        }, logs::add, () -> now);
+        assertEquals(401, call("POST", "/v1/tap", k2.token, "{\"x\":1,\"y\":2}").status);
+        assertTrue(calls.isEmpty());
+    }
+
+    @Test
     public void nonConfirmKeyNeverAsks() throws Exception {
         assertEquals(200, call("POST", "/v1/key", issue("act", 0, false).token, "{\"name\":\"home\"}").status);
         assertEquals(0, confirmCount);

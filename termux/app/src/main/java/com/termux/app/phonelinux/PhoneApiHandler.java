@@ -213,26 +213,26 @@ public final class PhoneApiHandler {
             case "/v1/tap": {
                 int x = num(body, "x"), y = num(body, "y");
                 detail[0] = "x=" + x + " y=" + y;
-                return act(key, "タップ (" + x + ", " + y + ")", () -> actions.tap(x, y));
+                return act(key, PhoneApiKeys.SCOPE_ACT, "タップ (" + x + ", " + y + ")", () -> actions.tap(x, y));
             }
             case "/v1/swipe": {
                 int x1 = num(body, "x1"), y1 = num(body, "y1"), x2 = num(body, "x2"), y2 = num(body, "y2");
                 int ms = body.has("ms") ? Math.max(1, Math.min(10_000, num(body, "ms"))) : 300;
                 detail[0] = "x1=" + x1 + " y1=" + y1 + " x2=" + x2 + " y2=" + y2 + " ms=" + ms;
-                return act(key, "スワイプ (" + x1 + ", " + y1 + ") → (" + x2 + ", " + y2 + ")", () -> actions.swipe(x1, y1, x2, y2, ms));
+                return act(key, PhoneApiKeys.SCOPE_ACT, "スワイプ (" + x1 + ", " + y1 + ") → (" + x2 + ", " + y2 + ")", () -> actions.swipe(x1, y1, x2, y2, ms));
             }
             case "/v1/type": {
                 if (!(body.opt("text") instanceof String)) throw new BadArg("text must be a string");
                 String text = body.optString("text");
                 boolean append = body.optBoolean("append", false);
                 detail[0] = "len=" + text.length();
-                return act(key, "文字入力 (" + text.length() + " 文字)", () -> actions.type(text, append));
+                return act(key, PhoneApiKeys.SCOPE_ACT, "文字入力 (" + text.length() + " 文字)", () -> actions.type(text, append));
             }
             case "/v1/key": {
                 String name = body.optString("name", "");
                 if (!name.matches("back|home|recents|notifications")) throw new BadArg("name must be back|home|recents|notifications");
                 detail[0] = "name=" + name;
-                return act(key, "キー操作: " + name, () -> actions.key(name));
+                return act(key, PhoneApiKeys.SCOPE_ACT, "キー操作: " + name, () -> actions.key(name));
             }
             default: {
                 String pkg = body.opt("package") instanceof String ? body.optString("package") : null;
@@ -240,7 +240,7 @@ public final class PhoneApiHandler {
                 if ((pkg == null) == (url == null)) throw new BadArg("give exactly one of package or url");
                 if (url != null && !url.matches("(?is)(https?|mailto|geo|tel):.+")) throw new BadArg("url scheme not allowed");
                 detail[0] = pkg != null ? "package=" + pkg : "url-scheme=" + url.substring(0, url.indexOf(':')).toLowerCase(Locale.ROOT);
-                return act(key, "開く: " + (pkg != null ? pkg : url.split("[?#]")[0]), () -> actions.open(pkg, url));
+                return act(key, PhoneApiKeys.SCOPE_OPEN, "開く: " + (pkg != null ? pkg : url.split("[?#]")[0]), () -> actions.open(pkg, url));
             }
         }
     }
@@ -255,12 +255,21 @@ public final class PhoneApiHandler {
         }
     }
 
-    private Response act(PhoneApiKeys.Key key, String description, Op op) throws PhoneActions.ActionException {
+    private Response act(PhoneApiKeys.Key key, String scope, String description, Op op) throws PhoneActions.ActionException {
         if (key.confirm && !confirmer.confirm(key.name, description)) return error(403, "denied by user");
         synchronized (actionLock) {
+            // the key may have been revoked or expired while waiting for the user or the lock
+            if (!stillAllowed(key, scope)) return error(401, "key no longer valid");
             op.run();
         }
         return json(200, kv("ok", true));
+    }
+
+    private boolean stillAllowed(PhoneApiKeys.Key key, String scope) {
+        for (PhoneApiKeys.Key k : keys.list()) {
+            if (k.id.equals(key.id)) return !k.isExpired(clock.getAsLong()) && k.scopes.contains(scope);
+        }
+        return false;
     }
 
     private static int num(JSONObject o, String name) {
