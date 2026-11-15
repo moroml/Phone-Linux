@@ -28,6 +28,16 @@ public class ToggleKeyDebouncerTest {
         assertEquals(3, toggles);
     }
 
+    /** Device log 2026-11-15: moving the pointer back to the PC releases the stuck key (two ups). */
+    @Test
+    public void releaseOnLeavingThePhoneDoesNotToggle() {
+        ToggleKeyDebouncer d = new ToggleKeyDebouncer();
+        assertEquals(ToggleKeyDebouncer.Result.TOGGLE, d.onKey(G, true, 0, 1000));
+        assertEquals(ToggleKeyDebouncer.Result.SWALLOW, d.onKey(G, true, 1, 1400));
+        assertEquals(ToggleKeyDebouncer.Result.SWALLOW, d.onKey(G, false, 0, 5844));
+        assertEquals(ToggleKeyDebouncer.Result.SWALLOW, d.onKey(G, false, 0, 5845));
+    }
+
     @Test
     public void repeatsAndUpsAreSwallowed() {
         ToggleKeyDebouncer d = new ToggleKeyDebouncer();

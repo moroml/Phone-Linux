@@ -7,7 +7,8 @@ import android.view.KeyEvent;
  *
  * Measured with Samsung "Multi Control": the PC sends only a key-down for the 半角/全角 key
  * (arrives as KEYCODE_GRAVE). Android then auto-repeats it (repeatCount &gt; 0) and the matching
- * key-up shows up only on the next press, right before the new down.
+ * key-up shows up only on the next press, right before the new down. When the pointer goes back
+ * to the PC, a cancelled up and a plain up arrive together; ups never toggle, so that is harmless.
  */
 public final class ToggleKeyDebouncer {
 
