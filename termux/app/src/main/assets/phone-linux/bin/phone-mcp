@@ -85,8 +85,15 @@ def handle(msg):
 	method, mid = msg.get("method"), msg.get("id")
 	if mid is None:  # notification
 		return None
+	params = msg.get("params")
+	if params is None:
+		params = {}
+	if not isinstance(params, dict):
+		return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "params must be an object"}}
 	if method == "initialize":
-		version = (msg.get("params") or {}).get("protocolVersion") or DEFAULT_VERSION
+		version = params.get("protocolVersion")
+		if not isinstance(version, str) or not version:
+			version = DEFAULT_VERSION
 		return {"jsonrpc": "2.0", "id": mid, "result": {"protocolVersion": version, "capabilities": {"tools": {}},
 			"serverInfo": {"name": "phone", "version": "1.0.0"}}}
 	if method == "ping":
@@ -96,9 +103,11 @@ def handle(msg):
 			for n, _, _, d, p, r in TOOLS]
 		return {"jsonrpc": "2.0", "id": mid, "result": {"tools": tools}}
 	if method == "tools/call":
-		params = msg.get("params") or {}
+		arguments = params.get("arguments")
+		if not isinstance(params.get("name"), str) or not (arguments is None or isinstance(arguments, dict)):
+			return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "name must be a string and arguments an object"}}
 		try:
-			content, is_error = call_tool(params.get("name"), params.get("arguments")), False
+			content, is_error = call_tool(params["name"], arguments), False
 		except KeyError:
 			return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown tool: %s" % params.get("name")}}
 		except ToolError as e:
@@ -117,6 +126,8 @@ def main():
 			reply = handle(msg) if isinstance(msg, dict) else {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "invalid request"}}
 		except ValueError:
 			reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}}
+		except Exception as e:  # one bad request must never end the server
+			reply = {"jsonrpc": "2.0", "id": msg.get("id") if isinstance(msg, dict) else None, "error": {"code": -32603, "message": "internal error: %s" % type(e).__name__}}
 		if reply is not None:
 			sys.stdout.write(json.dumps(reply, ensure_ascii=False) + "\n")
 			sys.stdout.flush()

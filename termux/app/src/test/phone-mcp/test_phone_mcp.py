@@ -161,6 +161,24 @@ class PhoneMcpTest(unittest.TestCase):
 		p = subprocess.run([sys.executable, "-I", SCRIPT], input="{bad\n", capture_output=True, text=True, timeout=30)
 		self.assertEqual(json.loads(p.stdout)["error"]["code"], -32700)
 
+	def test_malformed_params_and_arguments_do_not_kill_the_server(self):
+		out = self.run_mcp([
+			{"jsonrpc": "2.0", "id": 1, "method": "tools/call", "params": {"name": "phone_tap", "arguments": [1, 2]}},
+			{"jsonrpc": "2.0", "id": 2, "method": "tools/call", "params": ["x"]},
+			{"jsonrpc": "2.0", "id": 3, "method": "tools/call", "params": {"name": ["phone_tap"]}},
+			{"jsonrpc": "2.0", "id": 4, "method": "initialize", "params": "bad"},
+			{"jsonrpc": "2.0", "id": 5, "method": "initialize", "params": {"protocolVersion": 7}},
+			{"jsonrpc": "2.0", "id": 6, "method": ["x"]},
+			{"jsonrpc": "2.0", "id": 7, "method": "ping"},
+		])
+		self.assertEqual([o["id"] for o in out], [1, 2, 3, 4, 5, 6, 7])
+		for i in (0, 1, 2, 3):
+			self.assertEqual(out[i]["error"]["code"], -32602)
+		self.assertEqual(out[4]["result"]["protocolVersion"], "2025-06-18")
+		self.assertEqual(out[5]["error"]["code"], -32601)
+		self.assertEqual(out[6]["result"], {})
+		self.assertEqual(Phone.seen, [])
+
 	def test_port_file_is_used(self):
 		with open(os.path.join(self.home, ".phone-linux", "phone-api-port"), "w") as f:
 			f.write("1\n")
