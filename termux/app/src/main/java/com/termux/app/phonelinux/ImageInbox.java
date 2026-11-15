@@ -88,7 +88,7 @@ public final class ImageInbox {
         File dir = new File(INBOX_DIR_PATH);
         if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("inbox を作れません: " + dir);
         String mime = ctx.getContentResolver().getType(uri);
-        File out = uniqueFile(dir, baseName(System.currentTimeMillis(), TimeZone.getDefault()), extensionForMime(mime));
+        File out = createUnique(dir, baseName(System.currentTimeMillis(), TimeZone.getDefault()), extensionForMime(mime));
         try (InputStream in = ctx.getContentResolver().openInputStream(uri)) {
             if (in == null) throw new IOException("画像を開けません");
             long total = 0;
@@ -233,9 +233,10 @@ public final class ImageInbox {
         return out;
     }
 
-    private static File uniqueFile(File dir, String base, String ext) {
+    /** Atomically creates a new empty file, adding -2, -3, ... when the name is taken (safe against concurrent imports). */
+    static File createUnique(File dir, String base, String ext) throws IOException {
         File f = new File(dir, base + "." + ext);
-        for (int i = 2; f.exists(); i++) f = new File(dir, base + "-" + i + "." + ext);
+        for (int i = 2; !f.createNewFile(); i++) f = new File(dir, base + "-" + i + "." + ext);
         return f;
     }
 
