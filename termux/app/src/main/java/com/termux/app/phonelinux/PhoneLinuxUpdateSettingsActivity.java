@@ -45,7 +45,11 @@ public class PhoneLinuxUpdateSettingsActivity extends Activity {
             Toast.makeText(this, R.string.phone_linux_update_started, Toast.LENGTH_SHORT).show();
         });
 
+        TextView title = new TextView(this);
+        title.setText(R.string.phone_linux_update_title);
+        title.setTextSize(20);
         mLast = new TextView(this);
+        root.addView(title);
         root.addView(enabled);
         root.addView(now);
         root.addView(mLast);
