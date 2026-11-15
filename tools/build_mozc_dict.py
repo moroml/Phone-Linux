@@ -25,6 +25,9 @@ Outputs (gzip, named *.gzip because the Android build unpacks *.gz assets), all 
   mozc-conn.bin.gzip   "PLMC", u32 version, u32 N, u32 step, u32 width (1 or 2), 12 pad bytes, then
                        N*N values; the cost is value * step. width 2 is lossless (int16 range),
                        width 1 is uint8 quantised with the given step.
+  mozc-pos.bin.gzip    "PLMP", u32 version, u32 N, 8 pad bytes (20-byte header), then N bytes: the bunsetsu class of each
+                       part-of-speech id (see pos_class: 0 content, 1 attaches to the previous word,
+                       2 attaches to the next word, 3 content noun, 4 suru-verb).
   LICENSE-MOZC.txt
 
 Pruning (defaults): readings up to 16 chars, at most 20 entries per reading, entries with cost > 8500
@@ -142,6 +145,39 @@ def build_conn(src, step):
     return b"PLMC" + struct.pack("<IIII", 1, n, step, width) + bytes(12) + body, n
 
 
+CONTENT, ATTACH_PREV, ATTACH_NEXT, NOUN, SURU = range(5)
+
+
+def pos_class(pos):
+    """Bunsetsu class of an id.def part of speech ("品詞,細分類1,細分類2,細分類3,活用型,活用形,原形")."""
+    p = pos.split(",")
+    a, b = p[0], p[1]
+    if a in ("助詞", "助動詞"):
+        return ATTACH_PREV  # particles and auxiliaries never start a bunsetsu
+    if a in ("名詞", "動詞", "形容詞") and b in ("接尾", "非自立"):
+        return ATTACH_PREV  # さん, 的, ている, てください, ない
+    if a == "名詞" and b == "特殊":
+        return ATTACH_PREV  # 助動詞語幹: そう, よう
+    if a == "記号" and b in ("句点", "読点", "括弧閉"):
+        return ATTACH_PREV
+    if a == "接頭詞" or (a == "記号" and b == "括弧開"):
+        return ATTACH_NEXT  # お, 新, 「
+    if a == "動詞" and b == "自立" and p[4].startswith("サ変・スル"):
+        return SURU  # 変換 + する forms one bunsetsu
+    if a == "名詞" and b in ("一般", "固有名詞", "サ変接続", "数"):
+        return NOUN  # compounds: 日本語 + 入力
+    return CONTENT  # everything else, including 代名詞 and 副詞可能 (私, 明日) which start their own bunsetsu
+
+
+def build_pos(src):
+    classes = []
+    for line in open(os.path.join(src, "id.def"), encoding="utf-8"):
+        i, name = line.rstrip("\n").split(" ", 1)
+        assert int(i) == len(classes)
+        classes.append(0 if name.startswith("BOS/EOS") or name == UNKNOWN_POS else pos_class(name))
+    return b"PLMP" + struct.pack("<II", 1, len(classes)) + bytes(8) + bytes(classes), classes
+
+
 def gz(data, path):
     with open(path, "wb") as raw:
         with gzip.GzipFile(filename="", mode="wb", fileobj=raw, compresslevel=9, mtime=0) as g:
@@ -172,6 +208,9 @@ def main():
     dz = gz(d, os.path.join(a.out, "mozc-dict.bin.gzip"))
     c, n = build_conn(a.src, a.conn_step)
     cz = gz(c, os.path.join(a.out, "mozc-conn.bin.gzip"))
+    pos, classes = build_pos(a.src)
+    gz(pos, os.path.join(a.out, "mozc-pos.bin.gzip"))
+    print("pos classes: " + ", ".join("%d: %d" % (k, classes.count(k)) for k in range(5)))
     with open(os.path.join(a.out, "LICENSE-MOZC.txt"), "w", encoding="utf-8", newline="\n") as f:
         f.write(open(os.path.join(a.src, "LICENSE"), encoding="utf-8").read().rstrip("\n"))
         f.write("\n\n" + "=" * 79 + "\nMozc OSS dictionary README (IPAdic / Okinawa dictionary licenses)\n"

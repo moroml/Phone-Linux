@@ -64,6 +64,21 @@ final class FixtureDictionary implements KanaDictionary {
     }
 
     @Override
+    public int posClass(int id) {
+        switch (id) {
+            case NOUN:
+            case PLACE:
+            case FOOD:
+                return KanaDictionary.NOUN;
+            case PARTICLE:
+            case AUX:
+                return ATTACH_PREV;
+            default:
+                return CONTENT;
+        }
+    }
+
+    @Override
     public int unknownId() {
         return NOUN;
     }

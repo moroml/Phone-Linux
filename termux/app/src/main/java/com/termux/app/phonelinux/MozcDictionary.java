@@ -28,13 +28,21 @@ public final class MozcDictionary implements KanaDictionary {
     // Not ".gz": the Android build would decompress that and drop the extension.
     private static final String DICT_ASSET = "phone-linux-dict/mozc-dict.bin.gzip";
     private static final String CONN_ASSET = "phone-linux-dict/mozc-conn.bin.gzip";
-    private static final int HEADER = 32;
+    private static final String POS_ASSET = "phone-linux-dict/mozc-pos.bin.gzip";
+    private static final int HEADER = 32, POS_HEADER = 20;
 
-    private final ByteBuffer mDict, mConn;
+    private final ByteBuffer mDict, mConn, mPos;
     private final int mReadings, mUnknownId, mBlock, mCostStep, mBlocks;
     private final int mN, mConnStep, mConnWidth;
 
     MozcDictionary(ByteBuffer dict, ByteBuffer conn) {
+        this(dict, conn, null);
+    }
+
+    /** @param pos bunsetsu classes per id, or null to treat every id as CONTENT */
+    MozcDictionary(ByteBuffer dict, ByteBuffer conn, ByteBuffer pos) {
+        mPos = pos == null ? null : pos.duplicate().order(ByteOrder.LITTLE_ENDIAN);
+        if (mPos != null && mPos.getInt(0) != 0x504D4C50) throw new IllegalArgumentException("bad magic");
         mDict = dict.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         mConn = conn.duplicate().order(ByteOrder.LITTLE_ENDIAN);
         if (mDict.getInt(0) != 0x444D4C50 || mConn.getInt(0) != 0x434D4C50) throw new IllegalArgumentException("bad magic");
@@ -48,8 +56,8 @@ public final class MozcDictionary implements KanaDictionary {
         mConnWidth = mConn.getInt(16);
     }
 
-    public static MozcDictionary open(File dict, File conn) throws IOException {
-        return new MozcDictionary(map(dict), map(conn));
+    public static MozcDictionary open(File dict, File conn, File pos) throws IOException {
+        return new MozcDictionary(map(dict), map(conn), map(pos));
     }
 
     private static ByteBuffer map(File f) throws IOException {
@@ -63,6 +71,7 @@ public final class MozcDictionary implements KanaDictionary {
         File dir = new File(context.getFilesDir(), "phone-linux-dict");
         File dict = new File(dir, "mozc-dict.bin");
         File conn = new File(dir, "mozc-conn.bin");
+        File pos = new File(dir, "mozc-pos.bin");
         File ver = new File(dir, "mozc.ver");
         String version;
         try {
@@ -70,17 +79,18 @@ public final class MozcDictionary implements KanaDictionary {
         } catch (Exception e) {
             version = "0";
         }
-        if (!(dict.isFile() && conn.isFile() && ver.isFile() && version.equals(new String(readAll(ver), StandardCharsets.UTF_8)))) {
+        if (!(dict.isFile() && conn.isFile() && pos.isFile() && ver.isFile() && version.equals(new String(readAll(ver), StandardCharsets.UTF_8)))) {
             if (!dir.isDirectory() && !dir.mkdirs()) throw new IOException("mkdir " + dir);
             for (String old : new String[] {"skk.tsv", "skk.tsv.tmp", "skk.ver"}) new File(dir, old).delete();
             ver.delete();
             extract(context, DICT_ASSET, dict);
             extract(context, CONN_ASSET, conn);
+            extract(context, POS_ASSET, pos);
             try (OutputStream out = new FileOutputStream(ver)) {
                 out.write(version.getBytes(StandardCharsets.UTF_8));
             }
         }
-        return open(dict, conn);
+        return open(dict, conn, pos);
     }
 
     private static void extract(Context context, String asset, File target) throws IOException {
@@ -104,6 +114,12 @@ public final class MozcDictionary implements KanaDictionary {
     @Override
     public int unknownId() {
         return mUnknownId;
+    }
+
+    @Override
+    public int posClass(int id) {
+        if (mPos == null || id < 0 || POS_HEADER + id >= mPos.limit() || id >= mPos.getInt(8)) return CONTENT;
+        return mPos.get(POS_HEADER + id);
     }
 
     @Override

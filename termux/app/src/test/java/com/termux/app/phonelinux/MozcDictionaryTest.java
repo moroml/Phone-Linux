@@ -193,4 +193,19 @@ public class MozcDictionaryTest {
     public void rejectsOtherFiles() {
         new MozcDictionary(ByteBuffer.wrap(new byte[64]).order(ByteOrder.LITTLE_ENDIAN), conn(2, 1));
     }
+
+    @Test
+    public void readsBunsetsuClasses() {
+        ByteArrayOutputStream o = new ByteArrayOutputStream();
+        o.write(new byte[] {'P', 'L', 'M', 'P'}, 0, 4);
+        u32(o, 1);
+        u32(o, 3);
+        o.write(new byte[8], 0, 8);
+        o.write(new byte[] {0, 1, 2}, 0, 3);
+        MozcDictionary d = new MozcDictionary(dict(sample()), conn(2, 1), ByteBuffer.wrap(o.toByteArray()));
+        assertEquals(KanaDictionary.ATTACH_PREV, d.posClass(1));
+        assertEquals(KanaDictionary.ATTACH_NEXT, d.posClass(2));
+        assertEquals(KanaDictionary.CONTENT, d.posClass(3)); // out of range
+        assertEquals(KanaDictionary.CONTENT, new MozcDictionary(dict(sample()), conn(2, 1)).posClass(1));
+    }
 }
