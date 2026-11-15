@@ -1,0 +1,126 @@
+#!/data/data/com.termux/files/usr/bin/python3
+# phone-linux: MCP server (stdio) that lets Claude Code operate this phone through the local phone-control API.
+# Key: $HOME/.phone-linux/phone-api-key (or PHONE_API_KEY). Port: PHONE_API_PORT, $HOME/.phone-linux/phone-api-port, else 18765.
+import base64
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+DEFAULT_VERSION = "2025-06-18"
+TIMEOUT = 45  # the phone may wait up to 30 s for the user to confirm
+
+TOOLS = [
+	("phone_screenshot", "GET", "/v1/screenshot", "Take a screenshot of the phone screen (PNG image).", {}, []),
+	("phone_ui_tree", "GET", "/v1/ui", "Get the UI node tree of the current phone window as JSON (class, text, contentDescription, viewId, bounds [l,t,r,b], clickable, focused).", {}, []),
+	("phone_tap", "POST", "/v1/tap", "Tap at screen coordinates (pixels).",
+		{"x": {"type": "integer"}, "y": {"type": "integer"}}, ["x", "y"]),
+	("phone_swipe", "POST", "/v1/swipe", "Swipe from (x1,y1) to (x2,y2) over ms milliseconds (default 300).",
+		{"x1": {"type": "integer"}, "y1": {"type": "integer"}, "x2": {"type": "integer"}, "y2": {"type": "integer"}, "ms": {"type": "integer"}},
+		["x1", "y1", "x2", "y2"]),
+	("phone_type", "POST", "/v1/type", "Type text into the focused input field (replaces its text unless append is true).",
+		{"text": {"type": "string"}, "append": {"type": "boolean"}}, ["text"]),
+	("phone_key", "POST", "/v1/key", "Press a system key.",
+		{"name": {"type": "string", "enum": ["back", "home", "recents", "notifications"]}}, ["name"]),
+	("phone_open", "POST", "/v1/open", "Open an app by package name, or a URL (http, https, mailto, geo, tel). Give exactly one.",
+		{"package": {"type": "string"}, "url": {"type": "string"}}, []),
+]
+
+
+def home_file(name):
+	return os.path.join(os.path.expanduser("~"), ".phone-linux", name)
+
+
+def read_file(path):
+	try:
+		with open(path, encoding="utf-8") as f:
+			return f.read().strip()
+	except OSError:
+		return ""
+
+
+def base_url():
+	port = os.environ.get("PHONE_API_PORT") or read_file(home_file("phone-api-port")) or "18765"
+	return os.environ.get("PHONE_API_URL") or "http://127.0.0.1:" + port
+
+
+class ToolError(Exception):
+	pass
+
+
+def api(method, path, args):
+	key = os.environ.get("PHONE_API_KEY") or read_file(home_file("phone-api-key"))
+	if not key:
+		raise ToolError("APIの鍵がありません。Phone-Linux の「スマホ操作」設定で『Claude Code 用の鍵を作成』を押してください。")
+	data = json.dumps(args).encode() if method == "POST" else None
+	req = urllib.request.Request(base_url() + path, data=data, method=method, headers={
+		"Authorization": "Bearer " + key, "Content-Type": "application/json"})
+	try:
+		with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+			return resp.read(), resp.headers.get("Content-Type", "")
+	except urllib.error.HTTPError as e:
+		try:
+			detail = json.loads(e.read().decode()).get("error", "")
+		except (ValueError, AttributeError):
+			detail = ""
+		hints = {401: "鍵が無効か期限切れです。設定で鍵を作り直してください。", 403: "この鍵では許可されていないか、スマホ側で拒否されました。",
+			409: "入力欄にフォーカスがありません。先に入力欄をタップしてください。", 429: "操作が多すぎます。少し待ってください。"}
+		raise ToolError("HTTP %d: %s %s" % (e.code, detail, hints.get(e.code, ""))) from None
+	except (urllib.error.URLError, OSError):
+		raise ToolError("画面操作サービスに接続できません。設定 > ユーザー補助 で『Phone-Linux 画面操作』をオンにしてください (127.0.0.1:%s)。" % base_url().rsplit(":", 1)[-1]) from None
+
+
+def call_tool(name, args):
+	for tool, method, path, _, props, _ in TOOLS:
+		if tool == name:
+			body, ctype = api(method, path, {k: v for k, v in (args or {}).items() if k in props})
+			if ctype.startswith("image/"):
+				return [{"type": "image", "data": base64.b64encode(body).decode(), "mimeType": ctype.split(";")[0]}]
+			return [{"type": "text", "text": body.decode("utf-8", "replace")}]
+	raise KeyError(name)
+
+
+def handle(msg):
+	method, mid = msg.get("method"), msg.get("id")
+	if mid is None:  # notification
+		return None
+	if method == "initialize":
+		version = (msg.get("params") or {}).get("protocolVersion") or DEFAULT_VERSION
+		return {"jsonrpc": "2.0", "id": mid, "result": {"protocolVersion": version, "capabilities": {"tools": {}},
+			"serverInfo": {"name": "phone", "version": "1.0.0"}}}
+	if method == "ping":
+		return {"jsonrpc": "2.0", "id": mid, "result": {}}
+	if method == "tools/list":
+		tools = [{"name": n, "description": d, "inputSchema": {"type": "object", "properties": p, "required": r}}
+			for n, _, _, d, p, r in TOOLS]
+		return {"jsonrpc": "2.0", "id": mid, "result": {"tools": tools}}
+	if method == "tools/call":
+		params = msg.get("params") or {}
+		try:
+			content, is_error = call_tool(params.get("name"), params.get("arguments")), False
+		except KeyError:
+			return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32602, "message": "unknown tool: %s" % params.get("name")}}
+		except ToolError as e:
+			content, is_error = [{"type": "text", "text": str(e)}], True
+		return {"jsonrpc": "2.0", "id": mid, "result": {"content": content, "isError": is_error}}
+	return {"jsonrpc": "2.0", "id": mid, "error": {"code": -32601, "message": "method not found: %s" % method}}
+
+
+def main():
+	for line in sys.stdin:
+		line = line.strip()
+		if not line:
+			continue
+		try:
+			msg = json.loads(line)
+			reply = handle(msg) if isinstance(msg, dict) else {"jsonrpc": "2.0", "id": None, "error": {"code": -32600, "message": "invalid request"}}
+		except ValueError:
+			reply = {"jsonrpc": "2.0", "id": None, "error": {"code": -32700, "message": "parse error"}}
+		if reply is not None:
+			sys.stdout.write(json.dumps(reply, ensure_ascii=False) + "\n")
+			sys.stdout.flush()
+
+
+if __name__ == "__main__":
+	main()

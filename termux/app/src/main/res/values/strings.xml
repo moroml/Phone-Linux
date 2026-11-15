@@ -269,4 +269,44 @@
     <string name="phone_linux_update_never">未実行</string>
     <string name="phone_linux_update_failed">自動更新に失敗しました</string>
     <string name="phone_linux_update_failed_hint">設定の「自動更新」で詳細を確認してください</string>
+
+    <!-- Phone-Linux: phone control -->
+    <string name="phone_linux_service_label">Phone-Linux 画面操作</string>
+    <string name="phone_linux_service_description">Claude Code などが、このスマホの画面を読み取り、タップや文字入力を行えるようにします。操作は鍵を持つ端末内のプログラムだけが行えます。</string>
+    <string name="phone_linux_confirm_channel">画面操作の確認</string>
+    <string name="phone_linux_confirm_title">「%1$s」が操作を求めています</string>
+    <string name="phone_linux_confirm_allow">許可</string>
+    <string name="phone_linux_confirm_deny">拒否</string>
+    <string name="phone_linux_phone_title">スマホ操作 (Claude Code 用)</string>
+    <string name="phone_linux_phone_status_on">有効です (127.0.0.1:%1$d で待ち受け中)</string>
+    <string name="phone_linux_phone_status_off">無効です。ユーザー補助の設定で「Phone-Linux 画面操作」をオンにしてください。</string>
+    <string name="phone_linux_phone_status_error">待ち受けに失敗しました: %1$s</string>
+    <string name="phone_linux_phone_open_accessibility">ユーザー補助の設定を開く</string>
+    <string name="phone_linux_phone_port">ポート</string>
+    <string name="phone_linux_phone_save_port">保存</string>
+    <string name="phone_linux_phone_port_invalid">1024〜65535 の数字を入れてください</string>
+    <string name="phone_linux_phone_keys">鍵</string>
+    <string name="phone_linux_phone_claude_key">Claude Code 用の鍵を作成</string>
+    <string name="phone_linux_phone_claude_key_done">鍵を作成し、%1$s に保存しました</string>
+    <string name="phone_linux_phone_issue_key">鍵を発行</string>
+    <string name="phone_linux_phone_issue">発行</string>
+    <string name="phone_linux_phone_issue_invalid">名前と、使える操作を1つ以上選んでください</string>
+    <string name="phone_linux_phone_key_name">名前</string>
+    <string name="phone_linux_phone_scope_read">読み取り (画面の撮影・画面の構造)</string>
+    <string name="phone_linux_phone_scope_act">操作 (タップ・スワイプ・入力・戻る等)</string>
+    <string name="phone_linux_phone_scope_open">アプリや URL を開く</string>
+    <string name="phone_linux_phone_confirm_each">操作のたびに確認する</string>
+    <string name="phone_linux_phone_no_expiry">期限なし</string>
+    <string name="phone_linux_phone_expiry_days">%1$d 日</string>
+    <string name="phone_linux_phone_key_line">%1$s
+操作: %2$s / 期限: %3$s / %4$s</string>
+    <string name="phone_linux_phone_confirm_on">確認あり</string>
+    <string name="phone_linux_phone_confirm_off">確認なし</string>
+    <string name="phone_linux_phone_revoke">取り消し</string>
+    <string name="phone_linux_phone_revoke_confirm">鍵「%1$s」を取り消します。この鍵は使えなくなります。</string>
+    <string name="phone_linux_phone_token_title">鍵を発行しました</string>
+    <string name="phone_linux_phone_token_once">この鍵は今回だけ表示されます。今のうちにコピーしてください。</string>
+    <string name="phone_linux_phone_copy">コピー</string>
+    <string name="phone_linux_phone_copied">コピーしました</string>
+    <string name="phone_linux_phone_close">閉じる</string>
 </resources>

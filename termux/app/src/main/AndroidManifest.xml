@@ -233,6 +233,25 @@
             android:name=".app.TermuxService"
             android:exported="false" />
 
+        <activity
+            android:name=".app.phonelinux.PhoneLinuxPhoneSettingsActivity"
+            android:exported="false"
+            android:label="@string/phone_linux_phone_title"
+            android:theme="@style/Theme.TermuxApp.DayNight.NoActionBar" />
+
+        <service
+            android:name=".app.phonelinux.PhoneControlService"
+            android:exported="true"
+            android:label="@string/phone_linux_service_label"
+            android:permission="android.permission.BIND_ACCESSIBILITY_SERVICE">
+            <intent-filter>
+                <action android:name="android.accessibilityservice.AccessibilityService" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accessibilityservice"
+                android:resource="@xml/phone_linux_accessibility_config" />
+        </service>
+
         <service
             android:name=".app.RunCommandService"
             android:exported="true"
