@@ -127,6 +127,12 @@ public final class RomajiComposer {
         return false;
     }
 
+    /** Turns pending romaji into text (a lone n becomes ん) and returns the whole preedit, keeping it editable. */
+    public String settle() {
+        flush();
+        return mDone.toString();
+    }
+
     /** Returns the text to write to the terminal and clears the composer. */
     public String commit() {
         flush();
