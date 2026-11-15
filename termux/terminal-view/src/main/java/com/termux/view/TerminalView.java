@@ -7,6 +7,7 @@ import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
 import android.graphics.Canvas;
+import android.graphics.Paint;
 import android.graphics.Typeface;
 import android.os.Build;
 import android.os.Handler;
@@ -56,6 +57,9 @@ public final class TerminalView extends View {
     public TerminalRenderer mRenderer;
 
     public TerminalViewClient mClient;
+
+    /** Optional hardware keyboard handler (IME-independent input), see {@link HardwareKeyHook}. */
+    public HardwareKeyHook mHardwareKeyHook;
 
     private TextSelectionCursorController mTextSelectionCursorController;
 
@@ -645,6 +649,10 @@ public final class TerminalView extends View {
 
     @Override
     public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+        if (mHardwareKeyHook != null && mEmulator != null && mHardwareKeyHook.onKeyPreIme(this, event)) {
+            invalidate();
+            return true;
+        }
         if (TERMINAL_VIEW_KEY_LOGGING_ENABLED)
             mClient.logInfo(LOG_TAG, "onKeyPreIme(keyCode=" + keyCode + ", event=" + event + ")");
         if (keyCode == KeyEvent.KEYCODE_BACK) {
@@ -1029,11 +1037,40 @@ public final class TerminalView extends View {
                 mTextSelectionCursorController.getSelectors(sel);
             }
 
+            mRenderer.mCursorColorOverride = mHardwareKeyHook != null ? mHardwareKeyHook.getCursorColor() : 0;
             mRenderer.render(mEmulator, canvas, mTopRow, sel[0], sel[1], sel[2], sel[3]);
+
+            drawPreedit(canvas);
 
             // render the text selection handles
             renderTextSelection();
         }
+    }
+
+    private Paint mPreeditPaint;
+
+    /** Draws the hardware keyboard's uncommitted text over the cursor row, plus a caret in the cursor colour. */
+    private void drawPreedit(Canvas canvas) {
+        String preedit = mHardwareKeyHook == null ? null : mHardwareKeyHook.getPreedit();
+        if (preedit == null || preedit.isEmpty()) return;
+        if (mPreeditPaint == null) mPreeditPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        Paint p = mPreeditPaint;
+        p.setTypeface(mRenderer.mTypeface);
+        p.setTextSize(mRenderer.mTextSize);
+        float w = p.measureText(preedit);
+        float x = Math.min(getPointX(mEmulator.getCursorCol()), Math.max(0, getWidth() - w - mRenderer.mFontWidth));
+        float top = getPointY(mEmulator.getCursorRow());
+        float bottom = top + mRenderer.mFontLineSpacing;
+        p.setStyle(Paint.Style.FILL);
+        p.setColor(0xF0202830);
+        canvas.drawRect(x, top, x + w + mRenderer.mFontWidth, bottom, p);
+        p.setColor(0xFFFFFFFF);
+        canvas.drawText(preedit, x, top + mRenderer.mFontLineSpacingAndAscent, p);
+        p.setStrokeWidth(Math.max(2f, mRenderer.mTextSize / 12f));
+        canvas.drawLine(x, bottom - 2, x + w, bottom - 2, p);
+        int caret = mHardwareKeyHook.getCursorColor();
+        p.setColor(caret != 0 ? caret : 0xFFFFFFFF);
+        canvas.drawRect(x + w, top, x + w + mRenderer.mFontWidth / 3f, bottom, p);
     }
 
     public TerminalSession getCurrentSession() {
