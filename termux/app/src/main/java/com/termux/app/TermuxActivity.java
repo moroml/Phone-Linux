@@ -320,6 +320,8 @@ public final class TermuxActivity extends AppCompatActivity implements ServiceCo
         TermuxCrashUtils.notifyAppCrashFromCrashLogFile(this, LOG_TAG);
 
         mIsOnResumeAfterOnCreate = false;
+
+        com.termux.app.phonelinux.PhoneLinuxAppearance.onResume(this);
     }
 
     @Override
