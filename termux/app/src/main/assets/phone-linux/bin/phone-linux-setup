@@ -1,0 +1,10 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: first-run setup for Claude Code. Safe to run again.
+set -euo pipefail
+yes | pkg upgrade -y
+pkg install -y glibc-repo
+pkg install -y glibc-runner git ripgrep python jq curl
+claude-update
+mkdir -p "$HOME/.phone-linux"
+touch "$HOME/.phone-linux/setup-done"
+echo "準備ができました。claude で起動します。"

@@ -1,0 +1,38 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: install or update the official Claude Code binary (linux-arm64), verified by the release manifest.
+# Usage: claude-update [latest|stable|VERSION]
+set -euo pipefail
+BASE=https://downloads.claude.ai/claude-code-releases
+DIR=$HOME/.local/share/claude-native
+want=${1:-latest}
+
+if [[ $want == latest || $want == stable ]]; then
+	version=$(curl -fsSL "$BASE/$want")
+else
+	version=$want
+fi
+[[ $version =~ ^[0-9]+\.[0-9]+\.[0-9]+ ]] || { echo "版を取得できませんでした: $version" >&2; exit 1; }
+
+if [[ $(readlink "$DIR/current" 2>/dev/null || true) == "$DIR/versions/$version" ]]; then
+	echo "Claude Code $version は入っています。"
+	exit 0
+fi
+
+sum=$(curl -fsSL "$BASE/$version/manifest.json" | jq -r '.platforms["linux-arm64"].checksum // empty')
+[[ $sum =~ ^[a-f0-9]{64}$ ]] || { echo "チェックサムを取得できませんでした。" >&2; exit 1; }
+
+mkdir -p "$DIR/versions"
+part=$DIR/versions/.$version.part
+curl -fL --progress-bar -o "$part" "$BASE/$version/linux-arm64/claude"
+if ! echo "$sum  $part" | sha256sum -c --status; then
+	rm -f "$part"
+	echo "チェックサムが一致しません。入れ替えを中止しました。" >&2
+	exit 1
+fi
+chmod 755 "$part"
+mv "$part" "$DIR/versions/$version"
+ln -sfn "$DIR/versions/$version" "$DIR/current"
+
+# Keep the current version and the one before it (for rollback: claude-update <VERSION>).
+ls -1t "$DIR/versions" | tail -n +3 | while read -r old; do rm -f "$DIR/versions/$old"; done
+echo "Claude Code $version を入れました。"

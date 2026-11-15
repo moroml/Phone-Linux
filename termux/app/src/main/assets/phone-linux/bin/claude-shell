@@ -1,0 +1,4 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: shell for Claude Code's Bash tool. Restores termux-exec for Android (bionic) programs.
+export LD_PRELOAD=${PHONE_LINUX_LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}
+exec "$PREFIX/bin/bash" "$@"

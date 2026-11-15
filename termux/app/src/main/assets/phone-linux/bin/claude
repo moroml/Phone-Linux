@@ -1,0 +1,13 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: start the official Claude Code (linux-arm64, glibc) directly, without proot.
+G=$PREFIX/glibc/lib
+BIN=$HOME/.local/share/claude-native/current
+if [ ! -x "$BIN" ] || [ ! -x "$G/ld-linux-aarch64.so.1" ]; then
+	echo "Claude Code がまだ入っていません。phone-linux-setup を実行してください。" >&2
+	exit 1
+fi
+# termux-exec breaks the glibc loader, so drop it here and let claude-shell put it back for child shells.
+export PHONE_LINUX_LD_PRELOAD=${LD_PRELOAD:-$PREFIX/lib/libtermux-exec.so}
+unset LD_PRELOAD
+export SHELL=$PREFIX/bin/claude-shell BROWSER=$PREFIX/bin/xdg-open TMPDIR=${TMPDIR:-$PREFIX/tmp} DISABLE_AUTOUPDATER=1
+exec env "$G/ld-linux-aarch64.so.1" --library-path "$G" "$BIN" "$@"

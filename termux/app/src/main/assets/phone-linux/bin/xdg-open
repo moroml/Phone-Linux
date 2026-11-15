@@ -1,0 +1,6 @@
+#!/data/data/com.termux/files/usr/bin/bash
+# phone-linux: open URLs and files with Android apps (Claude Code opens its login page this way).
+case $1 in
+	http://* | https://*) exec termux-open-url "$1" ;;
+	*) exec termux-open "$1" ;;
+esac
