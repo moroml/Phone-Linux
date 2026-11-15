@@ -9,7 +9,7 @@ Galaxy 専用の Linux アプリ。Termux を土台に作り込み、アプリ�
 |---|---|
 | Claude Code | 初回起動で自動セットアップ。以後 `claude` で起動、`claude-update` で更新 |
 | 日本語入力(物理キーボード・マルチコントロール) | 半角/全角で日本語/英語を切り替え(日本語中は右上に「あ」、カーソルも緑)。配列は JIS/US を選べる |
-| 漢字変換 | オフライン(Mozc の辞書と品詞の接続コスト)。Space か Enter で変換、Space/↑↓ で候補、1〜9 で選択、←→ で区切りの移動、Shift+←→ で区切りの長さ、Enter で確定、Esc でかなに戻る。選んだ候補は `~/.phone-linux/user-dict.tsv` に覚える |
+| 漢字変換 | オフライン(Mozc の辞書と品詞の接続コスト)、文節単位(「私は｜学生です」)。Space か Enter で変換、Space/↑↓ で候補、1〜9 で選択、←→ で区切りの移動、Shift+←→ で区切りの長さ、Enter で確定、Esc でかなに戻る。選んだ候補は `~/.phone-linux/user-dict.tsv` に覚える |
 | PC と同じショートカット | Ctrl+Shift+C/V(コピー/貼り付け)、Ctrl+Shift+T(新しいセッション)、Ctrl+Tab(切り替え)、Ctrl+=/-(文字サイズ)、Ctrl+Shift+I(画像)、Shift+Enter(送信せずに改行)。`~/.phone-linux/keys.json` で変更可 |
 | 画像を指示に入れる | Ctrl+Shift+I、画面の長押しメニュー、他のアプリからの共有。`~/inbox/` に保存され、場所が入力欄に入る |
 | 見た目 | 背景(画像・単色・暗さ)、配色、日本語対応フォント(UDEV Gothic)。下のキー列は初期状態で非表示 |
